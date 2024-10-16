@@ -47,14 +47,13 @@ class BANTOTALRecordsSQLiteConnection:
         if not valid_file(self.db_path):
             return False
         
-        if self.connection is not None:
-            self.close()
+        if self.connection is None:
 
-        self.connection = sqlite3.connect(self.db_path, check_same_thread=False)
-        if self.connection is not None:
-            self.cursor = self.connection.cursor()
+            self.connection = sqlite3.connect(self.db_path, check_same_thread=False)
+            if self.connection is not None:
+                self.cursor = self.connection.cursor()
 
-        self.load_indexers()
+            self.load_indexers()
 
         return True
 
@@ -99,12 +98,12 @@ class BANTOTALRecordsSQLiteConnection:
 
         return str_repr
 
-    def get_employee_code_by(self, query: str, 
-                             mode: Literal['username', 'names']) -> List[str]:
+    def get_codes_ocurrences_by(self, query: str, 
+                             mode: Literal['username', 'fullname']) -> List[str]:
         if mode == 'username':
             return self.indexer_username.get_by(query)
         
-        elif mode == 'names':
+        elif mode == 'fullname':
             return self.indexer_names.get_by(query)
         
         else:
@@ -117,7 +116,7 @@ class BANTOTALRecordsSQLiteConnection:
             self.cursor.execute('''
             SELECT DISTINCT employee_code, username, names, hire_date FROM R017_327
             WHERE employee_code=?;
-            ''', (int(code),))
+            ''', (str(code),))
 
             row = self.cursor.fetchone()
 
@@ -126,7 +125,7 @@ class BANTOTALRecordsSQLiteConnection:
                 employee = EmployeeCapture(employee_code=employee_code,
                                            username=username, 
                                            names=names, 
-                                           hire_date=hire_date)
+                                           hire_date=datetime.fromtimestamp(hire_date))
                 results.append(employee)
 
         return results

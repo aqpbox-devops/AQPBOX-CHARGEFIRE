@@ -1,13 +1,74 @@
-import pygtrie
 import pickle
 import os
-from typing import *
+from typing import Any, Dict, List
+from collections import defaultdict
+
+def default_dict_factory():
+    return {"_end": False, "values": set()}
+
+class Trie:
+    """
+    Implement a trie with insert, search, and startsWith methods.
+    """
+    def __init__(self) -> None:
+        self.root = defaultdict(default_dict_factory)
+
+    def __len__(self) -> int:
+        """Returns the total number of nodes in the trie."""
+        return self._count_nodes(self.root)
+
+    def _count_nodes(self, node: Dict[str, Any]) -> int:
+        """Recursively counts the number of nodes in the trie."""
+        count = 1  # Count the current node
+        for key, value in node.items():
+            if isinstance(value, dict) and key not in ("_end", "values"):
+                count += self._count_nodes(value)
+        return count
+
+    def insert(self, word: str, value: Any) -> None:
+        """Inserts a word into the trie with an associated value."""
+        current = self.root
+        for letter in word:
+            current = current.setdefault(letter, default_dict_factory())
+        current["_end"] = True  # Mark the end of the word
+        current["values"].add(value)  # Store the associated value
+
+    def search(self, word: str) -> List[Any]:
+        """Returns the values associated with the word if it exists in the trie."""
+        current = self.root
+        for letter in word:
+            if letter not in current:
+                return []  # Return an empty list if the word is not found
+            current = current[letter]
+        if current["_end"]:
+            return list(current["values"])  # Return the associated values
+        return []
+
+    def startsWith(self, prefix: str) -> List[Any]:
+        """Returns all values associated with words that start with the given prefix."""
+        current = self.root
+        for letter in prefix:
+            if letter not in current:
+                return []  # Return an empty list if the prefix is not found
+            current = current[letter]
+        return self.get_subtree_values(current)
+
+    def get_subtree_values(self, node: Dict[str, Any]) -> List[Any]:
+        """Returns all values in the subtree rooted at the given node."""
+        values = set()
+        if node["_end"]:
+            values.update(node["values"])
+        for child in node.values():
+            if isinstance(child, dict) and child != node:
+                values.update(self.get_subtree_values(child))
+        return list(values)
+
 
 class CharTrieIndexer:
     def __init__(self, idx_path: str=None):
         super().__init__()
 
-        self.tree = pygtrie.CharTrie()
+        self.tree = Trie()
 
         if idx_path is not None:
             self.idx_path = idx_path
@@ -17,16 +78,11 @@ class CharTrieIndexer:
         return (f"[No. Trie keys: {len(self.tree)}]")
 
     def index(self, key: str, value: Any) -> None:
-        to_store = str(value)
-
         words = key.replace(',', '').split()
 
         for word in words:
-            for i in range(len(word)):
-                if word[i:].lower() in self.tree:
-                    self.tree[word[i:].lower()].add(to_store)
-                else:
-                    self.tree[word[i:].lower()] = {to_store}
+            lword = word.lower()
+            self.tree.insert(lword, value)
 
     def save_to_file(self) -> None:
         if hasattr(self, 'idx_path'):
@@ -39,18 +95,16 @@ class CharTrieIndexer:
                 with open(self.idx_path, 'rb') as f:
                     self.tree = pickle.load(f)
 
-    def get_by(self, query: str) -> List[str]:
+    def get_by(self, query: str) -> List[Any]:
         query_words = query.split()
         
         found_values = None
         
         for word in query_words:
-            if word.lower() in self.tree:
-                if found_values is None:
-                    found_values = self.tree[word.lower()].copy()
-                else:
-                    found_values &= self.tree[word.lower()]
+            lword = word.lower()
+            if found_values is None:
+                found_values = set(self.tree.startsWith(lword))
             else:
-                return []
+                found_values &= set(self.tree.startsWith(lword))
             
-        return list(found_values) if found_values else []
+        return list(found_values)

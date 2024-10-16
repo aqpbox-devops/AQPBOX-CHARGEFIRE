@@ -3,70 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Initializer</title>
+    <title>Carga & Despido</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        #result {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        #directory {
-            width: 100%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        button {
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
 </head>
 <body>
     <h1>Database Initializer</h1>
-    <input type="text" id="directory" placeholder="Enter directory path">
-    <button onclick="initializeDB()">Initialize Database</button>
-    <div id="result"></div>
+    <div class="db-connection">
+        <input type="text" id="dbPath" placeholder="Database path">
+        <button id="DB-ConnectionButton" onclick="toggleMannConnection(this)">Conectar</button>
+    </div>
+    
+    <div class="db-search_employee">
+        <label for="SearchMode">Modo de Búsqueda:</label>
+        <select id="SearchMode">
+            <option value="code">Código OFISIS</option>
+            <option value="username">Nombre de Usuario</option>
+            <option value="fullname">Nombres y Apellidos</option>
+        </select>
+        <input type="text" id="SearchEmployee" placeholder="Buscar empleado">
+        <div class="card-container" id="EmployeeResults"></div>
+    </div>
+    
+    <h2>Filters</h2>
+    <div class="filter-buttons">
+        <button onclick="toggleFilter(this)">Region</button>
+        <button onclick="toggleFilter(this)">Zona</button>
+        <button onclick="toggleFilter(this)">Agencia</button>
+        <button onclick="toggleFilter(this)">Comité</button>
+        <button onclick="toggleFilter(this)">Categoría</button>
+        <button onclick="toggleFilter(this)">Mínimo 15 días trabajados al mes</button>
+        <button onclick="toggleFilter(this)">Metas</button>
+    </div>
 
-    <script>
-        function initializeDB() {
-            const directory = document.getElementById('directory').value;
-            const resultDiv = document.getElementById('result');
-            
-            resultDiv.innerHTML = 'Initializing database...';
-            
-            axios.get(`/init_db/${encodeURIComponent(directory)}`)
-                .then(response => {
-                    resultDiv.innerHTML = `
-                        <h3>Success!</h3>
-                        <p>${response.data.message}</p>
-                        <pre>${JSON.stringify(response.data.info, null, 2)}</pre>
-                    `;
-                })
-                .catch(error => {
-                    resultDiv.innerHTML = `
-                        <h3>Error</h3>
-                        <p>${error.response ? error.response.data.error : error.message}</p>
-                    `;
-                });
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/buttons_style.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/db_getters.js') }}"></script>
 </body>
 </html>
