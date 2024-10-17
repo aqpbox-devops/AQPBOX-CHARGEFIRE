@@ -12,10 +12,10 @@ shutil.copyfileobj = _copyfileobj_patched
 import sqlite3
 import pickle
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import *
 from mymodules.database.indexers import CharTrieIndexer
-from mymodules.database.employee_handler import EmployeeCapture
+from mymodules.core.employee import EmployeeCapture
 from mymodules.thisconstants.vars import *
 import os
 import io
@@ -29,6 +29,17 @@ def df_to_blob(df: pd.DataFrame) -> bytes:
     pickle.dump(df, buffer_bytes)
 
     return buffer_bytes.getvalue()
+
+def get_last_days_of_months(start_date: datetime, end_date: datetime) -> List[int]:
+    last_days = []
+    current_date = start_date
+    
+    while current_date <= end_date:
+        last_day = (current_date + pd.offsets.MonthEnd(0)).date()
+        last_days.append(int(last_day.timestamp()))
+        current_date = last_day + timedelta(days=1)
+    
+    return last_days
 
 class BANTOTALRecordsSQLiteConnection:
     def __init__(self, dir: str, db_name: str = 'BANTOTAL(R)327-017.sqlite') -> None:
@@ -109,20 +120,52 @@ class BANTOTALRecordsSQLiteConnection:
         else:
             raise NotImplementedError(f"There is not a CharTrie for [{mode}].")
 
-    def get_employees_by_codes(self, query: List[str|int]) -> List[EmployeeCapture]:
+    def fetch_by_filters(self, target_employee_code: int, target_employee_ref: str, 
+                        filters: List[str], period: Tuple[datetime, datetime]) -> pd.DataFrame:
+        
+        last_days_of_months = get_last_days_of_months(period[0], period[1])
+
+        self.cursor.execute(f'''
+        WITH {target_employee_ref} AS (
+            SELECT *
+            FROM R017_327
+            WHERE employee_code = ?
+        )
+        SELECT *
+        FROM R017_327
+        WHERE {'\nAND '.join([filter.format(target_employee_ref) for filter in filters])}
+        AND snapshot_date IN ({', '.join(['?'] * len(last_days_of_months))})
+        GROUP BY employee_code;''', (target_employee_code, *last_days_of_months))
+
+        rows = self.cursor.fetchall()
+
+        column_names = [description[0] for description in self.cursor.description]
+
+        df = pd.DataFrame(rows, columns=column_names)
+
+        if len(df.columns) >= 2:
+            for i in range(-2, 0):
+                blob_data = df.iloc[:, i]
+
+                df.iloc[:, i] = blob_data.apply(lambda x: pd.read_csv(io.BytesIO(x)) if x is not None else None)
+
+        return df
+
+    def get_employees_by(self, query: List[str|int], column='employee_code') -> List[EmployeeCapture]:
         results: List[EmployeeCapture] = []
 
         for code in query:
-            self.cursor.execute('''
-            SELECT DISTINCT employee_code, username, names, hire_date FROM R017_327
-            WHERE employee_code=?;
-            ''', (str(code),))
+            self.cursor.execute(f'''
+            SELECT DISTINCT employee_code, employee_dni, username, names, hire_date FROM R017_327
+            WHERE {column}=?;
+            ''', (int(code),))
 
             row = self.cursor.fetchone()
 
             if row:
-                employee_code, username, names, hire_date = row
+                employee_code, employee_dni, username, names, hire_date = row
                 employee = EmployeeCapture(employee_code=employee_code,
+                                           employee_dni=employee_dni,
                                            username=username, 
                                            names=names, 
                                            hire_date=datetime.fromtimestamp(hire_date))
@@ -144,7 +187,7 @@ class BANTOTALRecordsSQLiteConnection:
             shutil.copyfile(idx_username_path2, self.indexer_username.idx_path)
             shutil.copyfile(idx_names_path2, self.indexer_names.idx_path)
            
-            print(f"All files copied successfully to {dir}.")
+            print(f"All files copied successfully from {dir}.")
 
         except Exception as e:
             print(f"Error copying files: {e}")
