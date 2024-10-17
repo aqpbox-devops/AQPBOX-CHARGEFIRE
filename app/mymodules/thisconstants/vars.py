@@ -27,3 +27,11 @@ R327_NEEDED_COLS = ['worked_days', 'sadc', 'sadm', 'sbs', 'vmcbc', 'vmcbm', 'sme
  'dosncp_odldp']"""
 
 R017_NEEDED_COLS = ['kpi_top']
+
+import pandas as pd
+
+QUALI_LOOKUP = pd.DataFrame({
+    'min_value': [-1000, 10, 46, 82],
+    'max_value': [9.99, 45.99, 81.99, 1000],
+    'description': ['MALO', 'REGULAR', 'BUENO', 'MUY BUENO']
+})

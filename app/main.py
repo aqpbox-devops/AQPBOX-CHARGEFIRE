@@ -36,9 +36,11 @@ def search_employee(query, mode):
 def search_pairs():
     try:
         flags = request.json
+        print(flags)
         response_data = AppChargeFireCore().pick_pairs(flags=flags)
         return jsonify(response_data), 200
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

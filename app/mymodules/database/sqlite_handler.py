@@ -22,23 +22,50 @@ import io
 
 def valid_file(a_path: str) -> bool:
     return os.path.exists(a_path)
-            
 
-def df_to_blob(df: pd.DataFrame) -> bytes:
-    buffer_bytes = io.BytesIO()
-    pickle.dump(df, buffer_bytes)
+def blob_to_series(blob: bytes) -> pd.Series:
+    return pickle.load(io.BytesIO(blob))
 
-    return buffer_bytes.getvalue()
+def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    # Asegurarse de que el DataFrame tiene al menos dos columnas
+    if len(df.columns) < 2:
+        raise ValueError("El DataFrame debe tener al menos dos columnas")
+
+    # Obtener los nombres de las dos últimas columnas
+    last_two_columns = df.columns[-2:]
+
+    # Crear un nuevo DataFrame para almacenar los resultados
+    result_df = df.drop(columns=last_two_columns).copy()
+
+    for index, row in df.iterrows():
+        for col in last_two_columns:
+            # Deserializar el BLOB a un DataFrame
+            try:
+                sub_series = blob_to_series(row[col])
+                print('SUB SERIES:', type(sub_series))
+
+                for sub_col, value in sub_series.items():
+                    if sub_col in result_df.columns:
+                        print(f"Advertencia: La columna '{sub_col}' ya existe en el DataFrame principal. Se sobrescribirá.")
+                    result_df.at[index, sub_col] = value
+            except Exception as e:
+                print(f"Error al procesar el BLOB en la columna {col}, fila {index}: {str(e)}")
+
+    return result_df
 
 def get_last_days_of_months(start_date: datetime, end_date: datetime) -> List[int]:
     last_days = []
-    current_date = start_date
-    
+    current_date = start_date.replace(day=1)  # Asegurarse de que current_date sea el primer día del mes
+
     while current_date <= end_date:
-        last_day = (current_date + pd.offsets.MonthEnd(0)).date()
+        next_month = current_date.month % 12 + 1
+        year = current_date.year + (current_date.month // 12)
+        last_day = datetime(year, next_month, 1) - timedelta(days=1)
+
         last_days.append(int(last_day.timestamp()))
+
         current_date = last_day + timedelta(days=1)
-    
+
     return last_days
 
 class BANTOTALRecordsSQLiteConnection:
@@ -124,18 +151,24 @@ class BANTOTALRecordsSQLiteConnection:
                         filters: List[str], period: Tuple[datetime, datetime]) -> pd.DataFrame:
         
         last_days_of_months = get_last_days_of_months(period[0], period[1])
-
-        self.cursor.execute(f'''
+        query = f'''
         WITH {target_employee_ref} AS (
             SELECT *
             FROM R017_327
             WHERE employee_code = ?
+            AND snapshot_date IN ({', '.join(['?'] * len(last_days_of_months))})
         )
         SELECT *
         FROM R017_327
-        WHERE {'\nAND '.join([filter.format(target_employee_ref) for filter in filters])}
+        WHERE {'\nAND '.join([filter.format(*([target_employee_ref]*(filter.count('{}')))) for filter in filters])}
         AND snapshot_date IN ({', '.join(['?'] * len(last_days_of_months))})
-        GROUP BY employee_code;''', (target_employee_code, *last_days_of_months))
+        GROUP BY employee_code;'''
+
+        #query = "SELECT * FROM R017_327 WHERE employee_code = ?;"
+
+        print(query)
+        
+        self.cursor.execute(query, (target_employee_code, *(last_days_of_months*2)))
 
         rows = self.cursor.fetchall()
 
@@ -143,13 +176,9 @@ class BANTOTALRecordsSQLiteConnection:
 
         df = pd.DataFrame(rows, columns=column_names)
 
-        if len(df.columns) >= 2:
-            for i in range(-2, 0):
-                blob_data = df.iloc[:, i]
+        print(df.head(1))
 
-                df.iloc[:, i] = blob_data.apply(lambda x: pd.read_csv(io.BytesIO(x)) if x is not None else None)
-
-        return df
+        return process_dataframe(df)
 
     def get_employees_by(self, query: List[str|int], column='employee_code') -> List[EmployeeCapture]:
         results: List[EmployeeCapture] = []

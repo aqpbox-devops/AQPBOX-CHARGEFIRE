@@ -37,6 +37,8 @@ document.getElementById('SearchEmployee').addEventListener('input', function(eve
 });
 
 document.getElementById('FiltersPanel').addEventListener('click', function(event) {
+    const start_date = document.getElementById('StartDate').value;
+    const end_date = document.getElementById('EndDate').value;
     if (event.target.tagName === 'BUTTON') {
         const region = document.getElementById('FlagRegion').classList.contains('active')
         const zone = document.getElementById('FlagZone').classList.contains('active')
@@ -51,7 +53,9 @@ document.getElementById('FiltersPanel').addEventListener('click', function(event
             agency,
             category,
             atLeast15,
-            goals
+            goals,
+            start_date,
+            end_date
         };
 
         const idContainer = 'FilteredPairsResults';

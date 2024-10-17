@@ -3,6 +3,7 @@ body {
     margin: 0;
     padding: 20px;
     background-color: #f0f0f0;
+    min-height: 100vh;
 }
 .container {
     max-width: 1200px;
@@ -22,12 +23,12 @@ input, select, button {
     border-radius: 4px;
 }
 button {
-    background-color: #4CAF50;
+    background-color: #3aa6ff;
     color: white;
     cursor: pointer;
 }
 button:hover {
-    background-color: #45a049;
+    background-color: #456446;
 }
 .filter-buttons button {
     margin-right: 10px;
@@ -35,7 +36,7 @@ button:hover {
     color: black;
 }
 .filter-buttons button.active {
-    background-color: #4CAF50;
+    background-color: hsl(226, 100%, 67%);
     color: white;
 }
 .time-range {
@@ -52,6 +53,7 @@ button:hover {
     gap: 10px;
     margin-top: 20px;
     max-height: 300px;
+    max-width: 50%;
     overflow-y: auto;
     padding: 10px;
     border: 1px solid #ddd;
@@ -81,6 +83,18 @@ button:hover {
     height: 300px;
     overflow-y: auto;
 }
+.left-panel {
+    width: 50%;
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.right-panel {
+    width: 50%;
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
 table {
     width: 100%;
     border-collapse: collapse;
@@ -98,6 +112,6 @@ th {
     align-items: center;
 }
 .db-connection input {
-    flex-grow: 1;
+    width: 30%;
     margin-right: 10px;
 }
