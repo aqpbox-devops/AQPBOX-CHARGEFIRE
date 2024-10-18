@@ -22,10 +22,19 @@ function displayResults(results, idContainer) {
     });
 }
 
+function clearElement(id_label){
+    const element = document.getElementById(id_label);
+    if (element) {
+        element.innerHTML = '';
+    }
+}
+
 document.getElementById('SearchEmployee').addEventListener('input', function(event) {
     const mode = document.getElementById('SearchMode').value;
     const query = event.target.value;
     const idContainer = 'EmployeeResults'
+
+    clearElement('FilteredPairsResults')
 
     axios.get(`/search_employee/${encodeURIComponent(query)}/${encodeURIComponent(mode)}`)
         .then(response => {
@@ -35,6 +44,10 @@ document.getElementById('SearchEmployee').addEventListener('input', function(eve
             document.getElementById(idContainer).value = error.error
         });
 });
+
+function showPairStats() {
+    const outpanel = document.getElementById('StatsPanel');
+}
 
 document.getElementById('FiltersPanel').addEventListener('click', function(event) {
     const start_date = document.getElementById('StartDate').value;
@@ -62,7 +75,12 @@ document.getElementById('FiltersPanel').addEventListener('click', function(event
 
         axios.post('/search_pairs', flags)
             .then(response => {
-                displayResults(response.data.employees, idContainer);
+                if (response.data.employees.length > 0){
+                    displayResults(response.data.employees, idContainer);
+                }
+                else{
+                    idContainer.value = 'No se encontraron pares'
+                }
             })
             .catch(error => {
                 document.getElementById(idContainer).value = error.error

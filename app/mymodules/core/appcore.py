@@ -105,6 +105,7 @@ class AppChargeFireCore:
                 last_employee_code = -1
                 print(self.paired_employees.head(20))
                 self.compare_and_fit_pairs()
+
                 for row in self.paired_employees.itertuples(index=True):
                     if row.employee_code == self.target_employee.employee_code:
                         continue
@@ -134,10 +135,23 @@ class AppChargeFireCore:
         
         if self.paired_employees is not None and self.target_employee is not None:
 
+            filter_columns = []
+            for column, flags in self.filter_flags.items():
+                if flags['active'] and column in ['region', 'zone', 'agency', 'category']:
+                    filter_columns.append(column)
+
+            conflict_mask = self.paired_employees.groupby('employee_code')[filter_columns].nunique()
+
+            conflicting_employees = conflict_mask[conflict_mask.gt(1).any(axis=1)].index.tolist()
+
+            self.paired_employees = self.paired_employees[~self.paired_employees['employee_code'].isin(conflicting_employees)]
+
             grouped_by_snapshot = self.paired_employees.groupby('snapshot_date')#should be 1 row per employee (x snapshot)
 
+            #POR MES
+            critical_indicators = ['employee_code', 'growth_s', 'growth_c', 'productivity']
             for idx, group in grouped_by_snapshot:
-                numerics = group.select_dtypes(include=[np.number])
+                numerics = group.select_dtypes(include=[np.number])[critical_indicators]
                 target = numerics.query(f'employee_code == {self.target_employee.employee_code}')#Series
                 others = numerics.query(f'employee_code != {self.target_employee.employee_code}')#DataFrame
 
@@ -152,3 +166,4 @@ class AppChargeFireCore:
                 comparison = target > pairs_avg
 
                 print(comparison, pairs_avg)
+

@@ -148,26 +148,30 @@ class BANTOTALRecordsSQLiteConnection:
             raise NotImplementedError(f"There is not a CharTrie for [{mode}].")
 
     def fetch_by_filters(self, target_employee_code: int, target_employee_ref: str, 
-                        filters: List[str], period: Tuple[datetime, datetime]) -> pd.DataFrame:
+                        filters: List[str], period: Tuple[datetime, datetime], daily: bool=False) -> pd.DataFrame:
         
         last_days_of_months = get_last_days_of_months(period[0], period[1])
+
+        frequency_snapshot = f"({int(period[0].timestamp())} >= snapshot_date AND snapshot_date <= {int(period[1].timestamp())})"
+
+        if not daily:
+            frequency_snapshot = f"snapshot_date IN ({', '.join(['?'] * len(last_days_of_months))})"
+
         query = f'''
         WITH {target_employee_ref} AS (
             SELECT *
             FROM R017_327
             WHERE employee_code = ?
-            AND snapshot_date IN ({', '.join(['?'] * len(last_days_of_months))})
+            AND {frequency_snapshot}
         )
         SELECT *
         FROM R017_327
         WHERE {'\nAND '.join([filter.format(*([target_employee_ref]*(filter.count('{}')))) for filter in filters])}
-        AND snapshot_date IN ({', '.join(['?'] * len(last_days_of_months))})
+        AND {frequency_snapshot}
         GROUP BY employee_code;'''
 
         #query = "SELECT * FROM R017_327 WHERE employee_code = ?;"
 
-        print(query)
-        
         self.cursor.execute(query, (target_employee_code, *(last_days_of_months*2)))
 
         rows = self.cursor.fetchall()
