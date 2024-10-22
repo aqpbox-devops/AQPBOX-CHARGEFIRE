@@ -27,29 +27,22 @@ def blob_to_series(blob: bytes) -> pd.Series:
     return pickle.load(io.BytesIO(blob))
 
 def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    # Asegurarse de que el DataFrame tiene al menos dos columnas
     if len(df.columns) < 2:
         raise ValueError("El DataFrame debe tener al menos dos columnas")
 
-    # Obtener los nombres de las dos últimas columnas
     last_two_columns = df.columns[-2:]
 
-    # Crear un nuevo DataFrame para almacenar los resultados
     result_df = df.drop(columns=last_two_columns).copy()
 
     for index, row in df.iterrows():
         for col in last_two_columns:
-            # Deserializar el BLOB a un DataFrame
             try:
                 sub_series = blob_to_series(row[col])
-                print('SUB SERIES:', type(sub_series))
 
                 for sub_col, value in sub_series.items():
-                    if sub_col in result_df.columns:
-                        print(f"Advertencia: La columna '{sub_col}' ya existe en el DataFrame principal. Se sobrescribirá.")
                     result_df.at[index, sub_col] = value
             except Exception as e:
-                print(f"Error al procesar el BLOB en la columna {col}, fila {index}: {str(e)}")
+                print(f"Error reading BLOB at col {col}, row {index}: {str(e)}")
 
     return result_df
 
@@ -67,6 +60,14 @@ def get_last_days_of_months(start_date: datetime, end_date: datetime) -> List[in
         current_date = last_day + timedelta(days=1)
 
     return last_days
+
+def to_snapshot_getter(period: Tuple[datetime, datetime], daily: bool=False) -> str:
+    if daily:
+        return f"({int(period[0].timestamp())} >= snapshot_date AND snapshot_date <= {int(period[1].timestamp())})"
+
+    else:
+        last_days_of_months = get_last_days_of_months(period[0], period[1])
+        return f"snapshot_date IN ({', '.join([str(date) for date in last_days_of_months])})"
 
 class BANTOTALRecordsSQLiteConnection:
     def __init__(self, dir: str, db_name: str = 'BANTOTAL(R)327-017.sqlite') -> None:
@@ -146,41 +147,15 @@ class BANTOTALRecordsSQLiteConnection:
         
         else:
             raise NotImplementedError(f"There is not a CharTrie for [{mode}].")
-
-    def fetch_by_filters(self, target_employee_code: int, target_employee_ref: str, 
-                        filters: List[str], period: Tuple[datetime, datetime], daily: bool=False) -> pd.DataFrame:
         
-        last_days_of_months = get_last_days_of_months(period[0], period[1])
-
-        frequency_snapshot = f"({int(period[0].timestamp())} >= snapshot_date AND snapshot_date <= {int(period[1].timestamp())})"
-
-        if not daily:
-            frequency_snapshot = f"snapshot_date IN ({', '.join(['?'] * len(last_days_of_months))})"
-
-        query = f'''
-        WITH {target_employee_ref} AS (
-            SELECT *
-            FROM R017_327
-            WHERE employee_code = ?
-            AND {frequency_snapshot}
-        )
-        SELECT *
-        FROM R017_327
-        WHERE {'\nAND '.join([filter.format(*([target_employee_ref]*(filter.count('{}')))) for filter in filters])}
-        AND {frequency_snapshot}
-        GROUP BY employee_code;'''
-
-        #query = "SELECT * FROM R017_327 WHERE employee_code = ?;"
-
-        self.cursor.execute(query, (target_employee_code, *(last_days_of_months*2)))
+    def fetch_all(self, query: str) -> pd.DataFrame:
+        self.cursor.execute(query)
 
         rows = self.cursor.fetchall()
 
         column_names = [description[0] for description in self.cursor.description]
 
         df = pd.DataFrame(rows, columns=column_names)
-
-        print(df.head(1))
 
         return process_dataframe(df)
 

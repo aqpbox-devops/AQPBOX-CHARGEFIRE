@@ -56,17 +56,11 @@ document.getElementById('FiltersPanel').addEventListener('click', function(event
         const region = document.getElementById('FlagRegion').classList.contains('active')
         const zone = document.getElementById('FlagZone').classList.contains('active')
         const agency = document.getElementById('FlagAgency').classList.contains('active')
-        const category = document.getElementById('FlagCategory').classList.contains('active')
-        const atLeast15 = document.getElementById('FlagAtLeast15').classList.contains('active')
-        const goals = document.getElementById('FlagGoals').classList.contains('active')
         
         const flags = {
             region,
             zone,
             agency,
-            category,
-            atLeast15,
-            goals,
             start_date,
             end_date
         };

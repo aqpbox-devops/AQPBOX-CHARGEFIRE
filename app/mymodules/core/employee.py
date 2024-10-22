@@ -11,6 +11,7 @@ class EmployeeCapture:
         self.username = username
         self.names = names
         self.hire_date = hire_date
+        self.selected = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -18,6 +19,7 @@ class EmployeeCapture:
             'employee_dni': self.employee_dni,
             'username': self.username.upper(),
             'names': self.names.title(),
-            'hire_date': self.hire_date.strftime('%d/%m/%Y')
+            'hire_date': self.hire_date.strftime('%d/%m/%Y'),
+            'selected': self.selected
         }
     
