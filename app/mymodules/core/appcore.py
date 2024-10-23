@@ -30,25 +30,39 @@ class AppCore:
                                              'dni',
                                              'username', 
                                              'fullname']) -> Dict[str, list]:
+        response_data = {
+            'employees': []
+        }
+        
+        column = 'employee_code' if mode != 'dni' else 'employee_dni'
+
+        exact_match = None
+        employees: List[EmployeeCapture] = []
+
         if mode == 'username' or mode == 'fullname':
-            results = self.connection.get_codes_ocurrences_by(query, mode)
-            employees = self.connection.get_employees_by(results)
+            results, exact_match = self.connection.get_codes_ocurrences_by(query, mode)
+            print('?????', type(results), type(exact_match))
+            employees += self.connection.get_employees_by(results)
+
+            if exact_match is not None:
+                employees += self.connection.get_employees_by([exact_match], column)
 
         else:
-            column = 'employee_code' if mode == 'code' else 'employee_dni'
-            employees = self.connection.get_employees_by([query], column)
+            employees += self.connection.get_employees_by([query], column)
 
-        if len(employees) == 1:
+        if exact_match is not None:
+            employees[-1].selected = True
+            self.target_employee = employees[-1]
+
+        elif len(employees) == 1:
+            employees[0].selected = True
             self.target_employee = employees[0]
-            self.target_employee.selected = True
 
         else:
             self.target_employee = None
 
         dict_employees = [o.to_dict() for o in employees]
 
-        response_data = {
-            'employees': dict_employees
-        }
+        response_data['employees'] = dict_employees
 
         return response_data

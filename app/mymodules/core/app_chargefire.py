@@ -23,13 +23,16 @@ class ChargeFireApp(AppCore):
         }
         self.critical_indicators = {'growth_s': 1.0, 'growth_c': 0.5, 'productivity': 0.3}
 
-    def target_and_pairs(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def target_and_pairs(self, other_columns: List[str] = None) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
         if self.paired_employees is None:
             return None, None
         
         cols = list(self.critical_indicators.keys())
         cols += ['smeta', 'cmeta', 'pmeta']
+
+        if other_columns is not None:
+            cols += other_columns
 
         critical_df = self.paired_employees[['employee_code', 'snapshot_date'] + cols]
             
@@ -40,7 +43,7 @@ class ChargeFireApp(AppCore):
     
     def pick_pairs(self, flags: Dict[str, bool]) -> Dict[str, Any]:
 
-        response_data = {'employees': []}
+        response_data = {'pairs': []}
 
         if self.target_employee is not None:
 
@@ -51,7 +54,6 @@ class ChargeFireApp(AppCore):
             frequency_snapshot = to_snapshot_getter((datetime.strptime(flags['start_date'], "%Y-%m-%d"), 
                                                      datetime.strptime(flags['end_date'], "%Y-%m-%d")))
             
-            print(flags)
             for key, value in flags.items():
                 if key.endswith('date'):
                     continue
@@ -76,8 +78,6 @@ class ChargeFireApp(AppCore):
             AND {frequency_snapshot}
             AND {'\nAND '.join([filter.format(*(['TargetEmployee']*(filter.count('{}')))) for filter in filters])}
             GROUP BY employee_code;'''
-
-            print(query)
 
             if any_true:
                 self.paired_employees = self.connection.fetch_all(query)
@@ -111,29 +111,48 @@ class ChargeFireApp(AppCore):
 
                 last_employee_code = -1
 
+                cols = list(self.critical_indicators.keys())
+
                 for row in self.paired_employees.itertuples(index=True):
                     if row.employee_code == self.target_employee.employee_code:
+                        response_data['target_info'] = {
+                            'category': row.category, 
+                            'region': row.region, 
+                            'zone': row.zone, 
+                            'agency': row.agency,
+                            'worked_days': row.worked_days
+                        }
                         continue
 
                     if last_employee_code != row.employee_code:
-                        response_data['employees'].append(EmployeeCapture(int(row.employee_code), 
-                                                                          int(row.employee_dni), 
-                                                                          row.username, 
-                                                                          row.names, 
-                                                                          datetime.fromtimestamp(int(row.hire_date))))
+                        pair_code = int(row.employee_code)
+                        new_pair = EmployeeCapture(pair_code, 
+                                                   int(row.employee_dni), 
+                                                   row.username, 
+                                                   row.names, 
+                                                   datetime.fromtimestamp(int(row.hire_date)))
+                        
+                        pair_info = self.paired_employees.query(f'employee_code == {pair_code}')[cols + ['smeta', 'cmeta', 'pmeta']].mean(axis=0)
+                        print(pair_info.info())
+                        new_pair.set_numbers(pair_info['growth_s'], pair_info['smeta'],
+                                             pair_info['growth_c'], pair_info['cmeta'],
+                                             pair_info['productivity'], pair_info['pmeta'])
+                        response_data['pairs'].append(new_pair)
+
                         last_employee_code = row.employee_code
 
-        response_data['employees'] = [emp.to_dict() for emp in response_data['employees']]
+        response_data['pairs'] = [emp.to_dict() for emp in response_data['pairs']]
 
         return response_data
     
     def rank_pairs(self) -> Dict[str, Any]:
+
         response_data = {'ranks': {}}
 
         if self.paired_employees is not None and self.target_employee is not None:
             for indicator in self.critical_indicators:
                 ranked_indices = self.paired_employees[indicator].rank().astype(int)
-                sorted_employee_codes = self.paired_employees.loc[ranked_indices.sort_values().index, 'employee_code'].tolist()
+                sorted_employee_codes = self.paired_employees.loc[ranked_indices.sort_values().index, 'username'].tolist()
                 response_data['ranks'][indicator] = sorted_employee_codes
                 
         return response_data
@@ -166,12 +185,15 @@ class ChargeFireApp(AppCore):
 
         return response_data
 
-    def prebuild_tables(self) -> Dict[str, Any]:
+    def prebuild_tables(self, banned_pairs: List[str]=None) -> Dict[str, Any]:
 
-        def every_month_of(monthly_averages, force_mean=False):
+        def every_month_of(monthly_averages: pd.DataFrame, force_mean=False):
             snapshots_list = []
 
             df = monthly_averages
+
+            if df.empty:
+                return snapshots_list
 
             if force_mean:
                 df = monthly_averages.mean(numeric_only=True)
@@ -199,6 +221,9 @@ class ChargeFireApp(AppCore):
         if self.paired_employees is not None and self.target_employee is not None:
             target, pairs = self.target_and_pairs()
 
+            if banned_pairs is not None:
+                pairs = pairs[~pairs['employee_code'].isin([int(code) for code in banned_pairs])]
+
             target['snapshot_date_t'] = pd.to_datetime(target['snapshot_date'], unit='s')
             target_monthly = target.groupby(target['snapshot_date_t'].dt.to_period('M')).mean(numeric_only=True).reset_index()
 
@@ -216,7 +241,7 @@ class ChargeFireApp(AppCore):
             tables_dict['full_avg_pairs'] = {'average': every_month_of(pairs_monthly_averages, True)}
 
             tables_dict['pairs_all_months'] = []
-            
+
             for employee_code in pairs['employee_code'].unique():
                 pair = pairs[pairs['employee_code'] == employee_code]
 
@@ -249,4 +274,4 @@ if __name__ == '__main__':
     print(ChargeFireApp().rank_pairs())
     print(ChargeFireApp().worst_pairs())
 
-    print(ChargeFireApp().prebuild_tables())
+    print(ChargeFireApp().prebuild_tables(['16482']))

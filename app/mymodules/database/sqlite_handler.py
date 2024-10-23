@@ -17,8 +17,11 @@ from typing import *
 from mymodules.database.indexers import CharTrieIndexer
 from mymodules.core.employee import EmployeeCapture
 from mymodules.thisconstants.vars import *
+from threading import Lock
 import os
 import io
+
+search_employee_lock = Lock()
 
 def valid_file(a_path: str) -> bool:
     return os.path.exists(a_path)
@@ -138,20 +141,25 @@ class BANTOTALRecordsSQLiteConnection:
         return str_repr
 
     def get_codes_ocurrences_by(self, query: str, 
-                             mode: Literal['username', 'fullname']) -> List[str]:
+                             mode: Literal['username', 'fullname']) -> Tuple[List[Any], Any]:
         if mode == 'username':
-            return self.indexer_username.get_by(query)
+            results, exact_match = self.indexer_username.get_by(query)
+            return results, exact_match
         
         elif mode == 'fullname':
-            return self.indexer_names.get_by(query)
+            results, exact_match = self.indexer_names.get_by(query)
+            return results, exact_match
         
         else:
             raise NotImplementedError(f"There is not a CharTrie for [{mode}].")
         
     def fetch_all(self, query: str) -> pd.DataFrame:
+
+        search_employee_lock.acquire(True)
         self.cursor.execute(query)
 
         rows = self.cursor.fetchall()
+        search_employee_lock.release()
 
         column_names = [description[0] for description in self.cursor.description]
 
@@ -160,15 +168,19 @@ class BANTOTALRecordsSQLiteConnection:
         return process_dataframe(df)
 
     def get_employees_by(self, query: List[str|int], column='employee_code') -> List[EmployeeCapture]:
+        print('ON GET EMPLOYEE BY')
+        print(query)
         results: List[EmployeeCapture] = []
 
         for code in query:
+            search_employee_lock.acquire(True)
             self.cursor.execute(f'''
             SELECT DISTINCT employee_code, employee_dni, username, names, hire_date FROM R017_327
             WHERE {column}=?;
             ''', (int(code),))
 
             row = self.cursor.fetchone()
+            search_employee_lock.release()
 
             if row:
                 employee_code, employee_dni, username, names, hire_date = row
@@ -178,7 +190,7 @@ class BANTOTALRecordsSQLiteConnection:
                                            names=names, 
                                            hire_date=datetime.fromtimestamp(hire_date))
                 results.append(employee)
-
+        print('ON GET EMPLOYEE BY RETURN')
         return results
             
 

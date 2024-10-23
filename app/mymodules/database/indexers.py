@@ -1,6 +1,6 @@
 import pickle
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from collections import defaultdict
 
 def default_dict_factory():
@@ -44,14 +44,20 @@ class Trie:
             return list(current["values"])  # Return the associated values
         return []
 
-    def startsWith(self, prefix: str) -> List[Any]:
-        """Returns all values associated with words that start with the given prefix."""
+    def startsWith(self, prefix: str) -> Tuple[List[Any], Any]:
+        """
+        Returns all values associated with words that start with the given prefix,
+        and a boolean indicating if the complete prefix exists as a word in the trie.
+        """
         current = self.root
         for letter in prefix:
             if letter not in current:
-                return []  # Return an empty list if the prefix is not found
+                return [], None  # Return an empty list and False if the prefix is not found
             current = current[letter]
-        return self.get_subtree_values(current)
+        
+        values = self.get_subtree_values(current)
+        exact_match = current["values"].copy() if current["_end"] else None
+        return values, exact_match
 
     def get_subtree_values(self, node: Dict[str, Any]) -> List[Any]:
         """Returns all values in the subtree rooted at the given node."""
@@ -95,16 +101,33 @@ class CharTrieIndexer:
                 with open(self.idx_path, 'rb') as f:
                     self.tree = pickle.load(f)
 
-    def get_by(self, query: str) -> List[Any]:
+    def get_by(self, query: str) -> Tuple[List[Any], Any]:
         query_words = query.split()
         
         found_values = None
+
+        exact_match = None
         
         for word in query_words:
             lword = word.lower()
+            exist = None
             if found_values is None:
-                found_values = set(self.tree.startsWith(lword))
+                chunk_values, exist = self.tree.startsWith(lword)
+                found_values = set(chunk_values)
             else:
-                found_values &= set(self.tree.startsWith(lword))
+                chunk_values, exist = self.tree.startsWith(lword)
+                found_values &= set(chunk_values)
+
+            if exist is not None:
+                exact_match = exist
+
+        print('???', type(exact_match))
+        
+        if exact_match is not None and len(exact_match) == 1:
+            exact_match = exact_match.pop()
+            found_values.discard(exact_match)
+
+        else:
+            exact_match = None
             
-        return list(found_values)
+        return list(found_values), exact_match
