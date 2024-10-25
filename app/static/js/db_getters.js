@@ -19,10 +19,10 @@ function createEmployeeCard(emp, mode) {
     else if (mode === 'indicator'){
         const card = document.createElement('tr');
 
-        card.className = 'displayed-pairs-row'
+        card.className = 'displayed-pairs-row';
 
         card.innerHTML = `
-            <td><input type="checkbox" class="select-checkbox" checked /></td>
+            <td><input type="checkbox" class="select-checkbox" ${emp.selected ? '' : 'checked'} /></td>
             <td>${emp.username}</td>
             <td>${emp.smeta}</td>
             <td>${emp.growth_s}</td>
@@ -51,7 +51,7 @@ function displayResults(results, idContainer, mode) {
                     <th>→Meta</th>
                     <th>Crec. Clientes</th>
                     <th>→Meta</th>
-                    <th>Desembolso</th>
+                    <th>Desembolsos</th>
                     <th>→Meta</th>
                 </tr>
             </thead>
@@ -84,9 +84,9 @@ function clearElement(id_label){
 document.getElementById('SearchEmployee').addEventListener('input', function(event) {
     const mode = document.getElementById('SearchMode').value;
     const query = event.target.value;
-    const idContainer = 'EmployeeResults'
+    const idContainer = 'EmployeeResults';
 
-    clearElement('FilteredPairsResults')
+    clearElement('FilteredPairsResults');
 
     if (query == ''){
         clearElement(idContainer)
@@ -94,23 +94,114 @@ document.getElementById('SearchEmployee').addEventListener('input', function(eve
     else{
         axios.get(`/search_employee/${encodeURIComponent(query)}/${encodeURIComponent(mode)}`)
             .then(response => {
-                clearElement(idContainer)
+                clearElement(idContainer);
                 displayResults(response.data.employees, idContainer, 'default');
             })
             .catch(error => {
-                clearElement(idContainer)
-                document.getElementById(idContainer).value = error.error
+                clearElement(idContainer);
+                document.getElementById(idContainer).value = error.error;
             });
     }
 });
 
+function buildAndSortRanking(sorted_emps, selectedIndicator) {
+    const sortedTableContainer = document.getElementById('RankingTable');
+    sortedTableContainer.innerHTML = '';
+
+    const sortedTable = document.createElement('table');
+    sortedTable.className = 'displayed-pairs-pannel';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+        <tr>
+            <th>Analista</th>
+            <th class="${selectedIndicator === 'growth_s' ? 'highlight-column' : ''}">Crecimiento Saldo</th>
+            <th>Saldo Meta</th>
+            <th class="${selectedIndicator === 'growth_c' ? 'highlight-column' : ''}">Crecimiento Clientes</th>
+            <th>Clientes Meta</th>
+            <th class="${selectedIndicator === 'productivity' ? 'highlight-column' : ''}">Desembolsos</th>
+            <th>Meta Desembolsos</th>
+        </tr>`;
+    sortedTable.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const table_ref = document.getElementById('PairsTable');
+    const rows = table_ref.getElementsByTagName('tr');
+
+    sorted_emps.forEach(emp => {
+        const pairRow = Array.from(rows).find(row => {
+            const usernameCell = row.getElementsByTagName('td')[1];
+            return usernameCell && usernameCell.textContent.trim() === emp;
+        });
+
+        if (pairRow) {
+            const checkbox = pairRow.querySelector('.select-checkbox');
+
+            if (checkbox && checkbox.checked) {
+                const newRow = pairRow.cloneNode(true);
+                newRow.className = 'displayed-pairs-row';
+                const checkboxCell = newRow.querySelector('td');
+                
+                if (checkboxCell) {
+                    checkboxCell.remove();
+                }
+
+                tbody.appendChild(newRow);
+            }
+        }
+    });
+
+    sortedTable.appendChild(tbody);
+    
+    sortedTableContainer.appendChild(sortedTable);
+}
+
+function buildRankingTable(ranks){
+    const ranking_buttons = document.getElementById('RankingButtons');
+    ranking_buttons.innerHTML = '';
+
+    const indicators_lookup = {};
+    indicators_lookup['growth_s'] = 'Crec. Saldo';
+    indicators_lookup['growth_c'] = 'Crec. Clientes';
+    indicators_lookup['productivity'] = 'Desembolsos';
+
+    const indicators = Object.keys(ranks);
+    indicators.forEach(indicator => {
+        const button = document.createElement('button');
+        button.textContent = indicators_lookup[indicator];
+        button.onclick = () => buildAndSortRanking(ranks[indicator], indicator);
+        ranking_buttons.appendChild(button);
+    });
+}
+
+function getDateRange() {
+    const selectedMonth = parseInt(document.getElementById('SelectedMonth').value);
+    const monthsBack = parseInt(document.getElementById('MonthsBack').value);
+
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+
+    const start_month = selectedMonth - 1;
+    const start_date = new Date(currentYear, start_month - monthsBack, 1);
+    const end_date = new Date(currentYear, start_month, 0);
+
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    return [formatDate(start_date), formatDate(end_date)];
+}
+
 document.getElementById('FiltersPanel').addEventListener('click', function(event) {
-    const start_date = document.getElementById('StartDate').value;
-    const end_date = document.getElementById('EndDate').value;
+    const [start_date, end_date] = getDateRange();
+
     if (event.target.tagName === 'BUTTON') {
-        const region = document.getElementById('FlagRegion').classList.contains('active')
-        const zone = document.getElementById('FlagZone').classList.contains('active')
-        const agency = document.getElementById('FlagAgency').classList.contains('active')
+        const region = document.getElementById('FlagRegion').classList.contains('active');
+        const zone = document.getElementById('FlagZone').classList.contains('active');
+        const agency = document.getElementById('FlagAgency').classList.contains('active');
         
         const flags = {
             region,
@@ -126,89 +217,7 @@ document.getElementById('FiltersPanel').addEventListener('click', function(event
             .then(response => {
                 if (response.data.pairs.length > 0){
                     displayResults(response.data.pairs, idContainer, 'indicator');
-                    const pairs_table = document.getElementById('PairsTable')
-                    const worstUsernames = response.data.worst;
-
-                    const rows = pairs_table.getElementsByTagName('tr');
-                    for (let i = 0; i < rows.length; i++) {
-                        const usernameCell = rows[i].getElementsByTagName('td')[1];
-                        
-                        if (usernameCell) {
-                            const username = usernameCell.textContent.trim();
-
-                            if (worstUsernames.includes(username)) {
-                                const checkbox = rows[i].querySelector('.select-checkbox');
-                                if (checkbox) {
-                                    checkbox.checked = false;
-                                }
-                            }
-                        }
-                    }
-
-                    const ranking_buttons = document.getElementById('RankingButtons');
-                    ranking_buttons.innerHTML = ''; // Limpiar el panel antes de agregar
-
-                    // Crear botones para cada indicador
-                    const indicators = Object.keys(response.data.ranks);
-                    indicators.forEach(indicator => {
-                        const button = document.createElement('button');
-                        button.textContent = `Ranking por ${indicator}`;
-                        button.onclick = () => sortTable(indicator); // Llama a la función para ordenar
-                        ranking_buttons.appendChild(button);
-                    });
-
-                    // Crear un contenedor para la tabla ordenada
-                    const sortedTableContainer = document.getElementById('RankingTable');
-
-                    // Función para ordenar y mostrar la tabla
-                    function sortTable(indicator) {
-                        // Limpiar el contenedor de la tabla ordenada antes de mostrar una nueva
-                        sortedTableContainer.innerHTML = '';
-
-                        // Obtener los rankings del indicador seleccionado
-                        const ranks = response.data.ranks[indicator];
-
-                        // Crear una nueva tabla sin checkboxes
-                        const sortedTable = document.createElement('table');
-                        sortedTable.className = 'displayed-pairs-pannel'; // Agregar clase para estilos
-
-                        // Crear encabezados
-                        const thead = document.createElement('thead');
-                        thead.innerHTML = `
-                            <tr>
-                                <th>Analista</th>
-                                <th>Crecimiento Saldo</th>
-                                <th>Saldo Meta</th>
-                                <th>Crecimiento Clientes</th>
-                                <th>Clientes Meta</th>
-                                <th>Desembolso</th>
-                                <th>Meta Desembolso</th>
-                            </tr>`;
-                        sortedTable.appendChild(thead);
-
-                        // Crear tbody
-                        const tbody = document.createElement('tbody');
-
-                        // Reordenar los pares según los rankings
-                        ranks.forEach(rank => {
-                            const pairRow = Array.from(rows).find(row => {
-                                const usernameCell = row.getElementsByTagName('td')[1];
-                                return usernameCell && usernameCell.textContent.trim() === rank;
-                            });
-
-                            if (pairRow) {
-                                // Clonar la fila sin el checkbox
-                                const newRow = pairRow.cloneNode(true);
-                                newRow.querySelector('.select-checkbox').remove(); // Eliminar el checkbox
-                                tbody.appendChild(newRow);
-                            }
-                        });
-
-                        sortedTable.appendChild(tbody);
-                        
-                        // Agregar la tabla ordenada al contenedor debajo de los botones
-                        sortedTableContainer.appendChild(sortedTable);
-                    }
+                    buildRankingTable(response.data.ranks);
                 }
                 else{
                     document.getElementById(idContainer).textContent = 'No se encontraron pares'

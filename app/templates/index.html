@@ -10,29 +10,43 @@
 <body>
     <div class="flex-panel">
         <div id="HalfPanelLeft">
-            <div class="db-connection">
-                <input type="text" id="dbPath" placeholder="Ruta a la base de datos" value="\\Info7352\aper\R327-R017(BASE)">
-                <button id="DB-ConnectionButton" onclick="toggleMannConnection(this)">Conectar</button>
-            </div>
-            
             <div class="db-search_employee">
-                <label for="SearchMode">Modo de Búsqueda:</label>
-                <select id="SearchMode">
-                    <option value="code">Código OFISIS</option>
-                    <option value="dni">DNI</option>
-                    <option value="username">Nombre de Usuario</option>
-                    <option value="fullname">Nombres y Apellidos</option>
-                </select>
-                <input type="text" id="SearchEmployee" placeholder="Buscar empleado">
-                <div class="card-container" id="EmployeeResults"></div>
+                <h2>Buscar empleado a evaluar</h2>
+                <div>
+                    <label for="SearchMode">Modo de Búsqueda:</label>
+                    <select id="SearchMode">
+                        <option value="code">Código OFISIS</option>
+                        <option value="dni">DNI</option>
+                        <option value="username">Nombre de Usuario</option>
+                        <option value="fullname">Nombres y Apellidos</option>
+                    </select>
+                    <input type="text" id="SearchEmployee" placeholder="Buscar empleado">
+                    <div class="card-container" id="EmployeeResults"></div>
+                </div>
             </div>
             
             <div class="db-filter-pairs">
                 <div class="filter-buttons" id="FiltersPanel">
-                    <h2>Filtros de búsqueda de PARES</h2>
-                    <div class="time-range">
-                        <input type="date" id="StartDate">
-                        <input type="date" id="EndDate">
+                    <h2>Filtros de búsqueda de pares</h2>
+                    <div class="month-range">
+                        <label for="SelectedMonth">Mes:</label>
+                        <select id="SelectedMonth">
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+            
+                        <label for="MonthsBack">Meses hacia atrás:</label>
+                        <input type="number" id="MonthsBack" min="0" placeholder="0" />
                     </div>
                     <button id="FlagRegion" onclick="toggleFilter(this)">Region</button>
                     <button id="FlagZone" onclick="toggleFilter(this)">Zona</button>
@@ -43,16 +57,27 @@
         </div>
 
         <div id="HalfPanelRight">
-            <h2>Promedios</h2>
-            <div class="stats-container" id="RankingByCriticalCols">
-                <div class="filter-buttons" id="RankingButtons"></div>
-                <div id="RankingTable"></div>
+            <div class="db-filter-pairs">
+                <h2>Ranking de pares</h2>
+                <div id="RankingByCriticalCols">
+                    <div class="filter-buttons" id="RankingButtons"></div>
+                    <div class="card-container" id="RankingTable"></div>
+                </div>
             </div>
-            <div class="stats-container" id="StatsPanel"></div>
+            
+            <div class="db-filter-pairs">
+                <h2>Tablas de la carta de cargos</h2>
+                <div id="StatsPanel" style="display: flex;">
+                    
+                </div>
+            </div>
+            
+            
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/buttons_style.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/db_connection.js') }}"></script>
     <script src="{{ url_for('static', filename='js/db_getters.js') }}"></script>
     <script src="{{ url_for('static', filename='js/db_compute.js') }}"></script>
 </body>

@@ -219,7 +219,7 @@ class ChargeFireApp(AppCore):
         tables_dict = {}
 
         if self.paired_employees is not None and self.target_employee is not None:
-            target, pairs = self.target_and_pairs()
+            target, pairs = self.target_and_pairs(['username'])
 
             if banned_pairs is not None:
                 pairs = pairs[~pairs['employee_code'].isin([int(code) for code in banned_pairs])]
@@ -250,7 +250,7 @@ class ChargeFireApp(AppCore):
                 pair_monthly = pair.groupby(pair['snapshot_date_t'].dt.to_period('M')).mean(numeric_only=True).reset_index()
 
                 tables_dict['pairs_all_months'].append({
-                    'username': employee_code,
+                    'username': pair['username'].values[0],
                     'timeline': every_month_of(pair_monthly),
                     'average': every_month_of(pair_monthly, True)
                 })
@@ -274,4 +274,4 @@ if __name__ == '__main__':
     print(ChargeFireApp().rank_pairs())
     print(ChargeFireApp().worst_pairs())
 
-    print(ChargeFireApp().prebuild_tables(['16482']))
+    print(ChargeFireApp().prebuild_tables())

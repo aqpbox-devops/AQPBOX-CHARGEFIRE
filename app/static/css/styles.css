@@ -11,9 +11,9 @@
     --font-size-base: 14px;
     --font-size-small: 12px;
     --font-size-large: 16px;
-  }
+}
   
-  @media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark) {
     :root {
       --bg-primary: #1e1e1e;
       --bg-secondary: #2d2d2d;
@@ -25,54 +25,54 @@
       --table-header-bg: #333333;
       --table-row-hover: #3a3a3a;
     }
-  }
+}
   
-  * {
+* {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-  }
+}
   
-  body {
+body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.4;
     color: var(--text-primary);
     background-color: var(--bg-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
     font-size: var(--font-size-base);
-  }
+}
   
-  .flex-panel {
+.flex-panel {
     display: flex;
     min-height: 100vh;
-  }
+}
   
-  #HalfPanelLeft, #HalfPanelRight {
+#HalfPanelLeft, #HalfPanelRight {
     flex: 1;
     padding: 1rem;
     overflow-y: auto;
-  }
+}
   
-  #HalfPanelLeft {
+#HalfPanelLeft {
     border-right: 1px solid var(--border-color);
-  }
+}
   
-  h2 {
+h2 {
     color: var(--accent-color);
     margin-bottom: 1rem;
     font-size: var(--font-size-large);
-  }
+}
   
-  .db-connection, .db-search_employee, .db-filter-pairs {
+.db-connection, .db-search_employee, .db-filter-pairs, .db-stats-container {
     background-color: var(--bg-secondary);
     padding: 1rem;
     border-radius: 6px;
     box-shadow: 0 2px 4px var(--shadow-color);
     margin-bottom: 1.5rem;
-  }
+}
   
-  input[type="text"], input[type="date"], select {
-    width: 100%;
+input[type="text"], input[type="date"], input[type="number"], select {
+    width: 50%;
     padding: 0.5rem;
     margin-bottom: 0.75rem;
     border: 1px solid var(--border-color);
@@ -80,9 +80,32 @@
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-size: var(--font-size-base);
-  }
+}
+
+.loader {
+    border: 8px solid rgba(255, 255, 255, 0.3); /* Color del borde */
+    border-top: 8px solid #ffffff; /* Color del borde superior */
+    border-radius: 50%;
+    width: 50px; /* Tamaño de la rueda */
+    height: 50px; /* Tamaño de la rueda */
+    animation: spin 1s linear infinite; /* Animación de giro */
+    margin: 20px auto; /* Centrar la rueda */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+input[type="number"]{
+    width: 10%!important;
+}
+
+select{
+    width: 25%!important;
+}
   
-  button {
+button {
     background-color: var(--accent-color);
     color: white;
     border: none;
@@ -91,61 +114,61 @@
     border-radius: 4px;
     font-size: var(--font-size-base);
     transition: background-color 0.3s ease;
-  }
+}
   
-  button:hover {
+button:hover {
     background-color: #7ff885;
-  }
+}
   
-  button.active {
+button.active {
     background-color: #6bd370;
     color: #000000;
     font-weight: bold;
-  }
+}
   
-  .filter-buttons button {
+.filter-buttons button {
     margin-right: 0.5rem;
     margin-bottom: 0.5rem;
-  }
+}
   
-  .card-container {
+.card-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 0.75rem;
     margin-top: 0.75rem;
     max-height: 200px;
     overflow-y: scroll;
-  }
+}
   
-  .employee-card {
+.employee-card {
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 0.75rem;
     box-shadow: 0 1px 3px var(--shadow-color);
     font-size: var(--font-size-small);
-  }
+}
   
-  .employee-card strong {
+.employee-card strong {
     color: var(--accent-color);
-  }
+}
   
-  .time-range {
+.time-range {
     display: flex;
     gap: 0.75rem;
     margin-bottom: 0.75rem;
-  }
+}
   
-  .time-range input[type="date"] {
+.time-range input[type="date"] {
     flex: 1;
-  }
+}
   
-  .displayed-pairs-pannel {
+.displayed-pairs-pannel {
     width: 100%;
     border-collapse: collapse;
     margin-top: 0.75rem;
     font-size: var(--font-size-small);
-  }
+}
 
 .displayed-pairs-row {
     transition: box-shadow 0.3s ease; /* Transición suave */
@@ -174,6 +197,12 @@
   .displayed-pairs-pannel tr:hover {
     background-color: var(--table-row-hover);
   }
+
+  .highlight-column {
+    background-color: var(--accent-color)!important;
+    font-weight: bold!important;
+    color:#000000!important;
+}
   
   .stats-container {
     display: grid;
@@ -191,7 +220,7 @@
       border-right: none;
     }
   
-    .time-range {
+    .time-range, .month-range {
       flex-direction: column;
     }
   
