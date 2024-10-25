@@ -32,7 +32,7 @@ R327_NEEDED_COLS = ['worked_days', 'sadc', 'sadm', 'sbs', 'vmcbc', 'vmcbm', 'sme
  'doscpa', 'doscpaldp', 'doscpoo', 'dosncp_reprog', 'dosncp_refin', 'dosncp_pren', 'dosncp_rpren', 
  'dosncp_odldp']"""
 
-R017_NEEDED_COLS = ['kpi_top']
+R017_NEEDED_COLS = ['kpi_top', 'donton']
 
 import pandas as pd
 

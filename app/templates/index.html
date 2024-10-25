@@ -6,6 +6,7 @@
     <title>Carga & Despido</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="flex-panel">
@@ -48,9 +49,9 @@
                         <label for="MonthsBack">Meses hacia atrás:</label>
                         <input type="number" id="MonthsBack" min="0" placeholder="0" />
                     </div>
-                    <button id="FlagRegion" onclick="toggleFilter(this)">Region</button>
-                    <button id="FlagZone" onclick="toggleFilter(this)">Zona</button>
-                    <button id="FlagAgency" onclick="toggleFilter(this)">Agencia</button>
+                    <button id="FlagRegion" onclick="restrictiveToggleFilter(['FlagRegion', 'FlagZone', 'FlagAgency'])">Region</button>
+                    <button id="FlagZone" onclick="restrictiveToggleFilter(['FlagZone', 'FlagRegion', 'FlagAgency'])">Zona</button>
+                    <button id="FlagAgency" onclick="restrictiveToggleFilter(['FlagAgency', 'FlagRegion', 'FlagZone'])">Agencia</button>
                 </div>
                 <div class="card-container" id="FilteredPairsResults"></div>
             </div>
@@ -59,17 +60,29 @@
         <div id="HalfPanelRight">
             <div class="db-filter-pairs">
                 <h2>Ranking de pares</h2>
+                <div class="employee-card" id="TargetAttrs"></div>
                 <div id="RankingByCriticalCols">
                     <div class="filter-buttons" id="RankingButtons"></div>
+                    <div class="filter-buttons" id="Legend">
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <div style="width: 15px; height: 15px; background-color: var(--accent-color); margin-right: 5px;"></div>
+                            <div style="font-style: italic; margin-right: 15px;">Pares</div> <!-- Espacio a la derecha -->
+                            <div style="width: 15px; height: 15px; background-color: var(--secondary-accent-color); margin-right: 5px;"></div>
+                            <div style="font-style: italic;">Empleado evaluado</div>
+                        </div>
+                    </div>
+                    <div class="card-container" id="TargetAverage"></div>
                     <div class="card-container" id="RankingTable"></div>
                 </div>
             </div>
             
             <div class="db-filter-pairs">
                 <h2>Tablas de la carta de cargos</h2>
-                <div id="StatsPanel" style="display: flex;">
-                    
+                <div class="filter-buttons">
+                    <button id="DownloadExcelFile" onclick="download_excel_and_show()">Descargar</button>
+                    <h3 id="DownloadExcelPath"></h3>
                 </div>
+                <div id="ExcelTablesPanel"></div>
             </div>
             
             

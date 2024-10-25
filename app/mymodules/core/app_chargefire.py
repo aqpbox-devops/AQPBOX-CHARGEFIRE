@@ -21,7 +21,7 @@ class ChargeFireApp(AppCore):
             'zone': 'zone=(SELECT zone FROM {})',
             'agency': 'agency=(SELECT agency FROM {})'
         }
-        self.critical_indicators = {'growth_s': 1.0, 'growth_c': 0.5, 'productivity': 0.3}
+        self.critical_indicators = {'vmcbm': 1.0, 'vmcbc': 0.5, 'donton': 0.3}
 
     def target_and_pairs(self, other_columns: List[str] = None) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
@@ -70,14 +70,18 @@ class ChargeFireApp(AppCore):
             )
             SELECT *
             FROM R017_327
-            WHERE category=(SELECT category FROM TargetEmployee)
-            AND (cmeta=(SELECT cmeta FROM TargetEmployee) 
-                AND smeta=(SELECT smeta FROM TargetEmployee) 
-                AND pmeta=(SELECT pmeta FROM TargetEmployee))
-            AND worked_days > 14
-            AND {frequency_snapshot}
-            AND {'\nAND '.join([filter.format(*(['TargetEmployee']*(filter.count('{}')))) for filter in filters])}
-            GROUP BY employee_code;'''
+            WHERE employee_code = {self.target_employee.employee_code}  -- Incluir al target employee
+            OR (
+                category = (SELECT category FROM TargetEmployee)
+                AND (cmeta = (SELECT cmeta FROM TargetEmployee) 
+                    AND smeta = (SELECT smeta FROM TargetEmployee) 
+                    AND pmeta = (SELECT pmeta FROM TargetEmployee))
+                AND worked_days > 14
+                AND {frequency_snapshot}
+                AND {'\nAND '.join([filter.format(*(['TargetEmployee']*(filter.count('{}')))) for filter in filters])}
+            )
+            GROUP BY employee_code;
+        '''
 
             if any_true:
                 self.paired_employees = self.connection.fetch_all(query)
@@ -134,9 +138,9 @@ class ChargeFireApp(AppCore):
                         
                         pair_info = self.paired_employees.query(f'employee_code == {pair_code}')[cols + ['smeta', 'cmeta', 'pmeta']].mean(axis=0)
                         print(pair_info.info())
-                        new_pair.set_numbers(pair_info['growth_s'], pair_info['smeta'],
-                                             pair_info['growth_c'], pair_info['cmeta'],
-                                             pair_info['productivity'], pair_info['pmeta'])
+                        new_pair.set_numbers(pair_info['vmcbm'], pair_info['smeta'],
+                                             pair_info['vmcbc'], pair_info['cmeta'],
+                                             pair_info['donton'], pair_info['pmeta'])
                         response_data['pairs'].append(new_pair)
 
                         last_employee_code = row.employee_code
@@ -175,9 +179,9 @@ class ChargeFireApp(AppCore):
 
             if comparison.any().any():
 
-                pairs['weighted_sum'] = (pairs['growth_s'] * self.critical_indicators['growth_s'] +
-                                         pairs['growth_c'] * self.critical_indicators['growth_c'] +
-                                         pairs['productivity'] * self.critical_indicators['productivity'])
+                pairs['weighted_sum'] = (pairs['vmcbm'] * self.critical_indicators['vmcbm'] +
+                                         pairs['vmcbc'] * self.critical_indicators['vmcbc'] +
+                                         pairs['donton'] * self.critical_indicators['donton'])
 
                 threshold = pairs['weighted_sum'].quantile(1/3)
 
@@ -185,7 +189,8 @@ class ChargeFireApp(AppCore):
 
         return response_data
 
-    def prebuild_tables(self, banned_pairs: List[str]=None) -> Dict[str, Any]:
+    def prebuild_tables(self, banned_pairs: List[str]=None, 
+                        get_full_target_avg: bool=False) -> Dict[str, Any]:
 
         def every_month_of(monthly_averages: pd.DataFrame, force_mean=False):
             snapshots_list = []
@@ -202,13 +207,13 @@ class ChargeFireApp(AppCore):
 
             for index, row in df.iterrows():
                 snapshot_dict = {
-                    'month': MONTHS_SPANISH[row['snapshot_date_t'].month], 
+                    'month': MONTHS_SPANISH[row['snapshot_date_t'].month].upper(), 
                     'smeta': row['smeta'], 
-                    'growth_s': row['growth_s'], 
+                    'vmcbm': row['vmcbm'], 
                     'cmeta': row['cmeta'], 
-                    'growth_c': row['growth_c'], 
+                    'vmcbc': row['vmcbc'], 
                     'pmeta': row['pmeta'], 
-                    'productivity': row['productivity']
+                    'donton': row['donton']
                 }
                 snapshots_list.append(snapshot_dict) 
 
@@ -219,13 +224,41 @@ class ChargeFireApp(AppCore):
         tables_dict = {}
 
         if self.paired_employees is not None and self.target_employee is not None:
-            target, pairs = self.target_and_pairs(['username'])
+            target, pairs = self.target_and_pairs(['username', 'region', 'zone', 
+                                                   'agency', 'category'])
+
+            target_1row= target.iloc[0]
+
+            target_attrs = {
+                'region': target_1row['region'],
+                'zone': target_1row['zone'],
+                'agency': target_1row['agency'],
+                'category': target_1row['category']
+            }
 
             if banned_pairs is not None:
-                pairs = pairs[~pairs['employee_code'].isin([int(code) for code in banned_pairs])]
+                pairs = pairs[~pairs['username'].isin([username for username in banned_pairs])]
+
+            #print(target)
 
             target['snapshot_date_t'] = pd.to_datetime(target['snapshot_date'], unit='s')
             target_monthly = target.groupby(target['snapshot_date_t'].dt.to_period('M')).mean(numeric_only=True).reset_index()
+
+            tables_dict['full_avg_target'] = {'username': self.target_employee.username,
+                                              'average': every_month_of(target_monthly, True)}
+
+            if get_full_target_avg:
+
+                print(tables_dict['full_avg_target'])
+                print('INFO TARGET  ', target_attrs)
+
+                tables_dict['full_avg_target']['attrs'] = target_attrs
+
+                print(tables_dict)
+
+                response_data['tables'] = tables_dict
+
+                return response_data
 
             pairs['snapshot_date_t'] = pd.to_datetime(pairs['snapshot_date'], unit='s')
             pairs_monthly_averages = pairs.groupby(pairs['snapshot_date_t'].dt.to_period('M')).mean(numeric_only=True).reset_index()
@@ -234,9 +267,6 @@ class ChargeFireApp(AppCore):
                                                 'timeline': every_month_of(target_monthly)}
             
             tables_dict['all_months_pairs_avg'] = {'timeline': every_month_of(pairs_monthly_averages)}
-
-            tables_dict['full_avg_target'] = {'username': self.target_employee.username,
-                                              'average': every_month_of(target_monthly, True)}
             
             tables_dict['full_avg_pairs'] = {'average': every_month_of(pairs_monthly_averages, True)}
 

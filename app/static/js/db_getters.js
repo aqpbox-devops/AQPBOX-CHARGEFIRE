@@ -25,11 +25,11 @@ function createEmployeeCard(emp, mode) {
             <td><input type="checkbox" class="select-checkbox" ${emp.selected ? '' : 'checked'} /></td>
             <td>${emp.username}</td>
             <td>${emp.smeta}</td>
-            <td>${emp.growth_s}</td>
+            <td>${emp.vmcbm}</td>
             <td>${emp.cmeta}</td>
-            <td>${emp.growth_c}</td>
+            <td>${emp.vmcbc}</td>
             <td>${emp.pmeta}</td>
-            <td>${emp.productivity}</td>
+            <td>${emp.donton}</td>
         `;
         return card;
     }
@@ -48,11 +48,11 @@ function displayResults(results, idContainer, mode) {
                     <th>Es par</th>
                     <th>Analista</th>
                     <th>Crec. Saldo</th>
-                    <th>→Meta</th>
+                    <th>Saldo Meta</th>
                     <th>Crec. Clientes</th>
-                    <th>→Meta</th>
+                    <th>Clientes Meta</th>
                     <th>Desembolsos</th>
-                    <th>→Meta</th>
+                    <th>Meta Desembolsos</th>
                 </tr>
             </thead>
             <tbody id="PairsBody"></tbody>
@@ -104,7 +104,7 @@ document.getElementById('SearchEmployee').addEventListener('input', function(eve
     }
 });
 
-function buildAndSortRanking(sorted_emps, selectedIndicator) {
+function buildAndSortRanking(sorted_emps, selectedIndicator, target_data) {
     const sortedTableContainer = document.getElementById('RankingTable');
     sortedTableContainer.innerHTML = '';
 
@@ -115,11 +115,11 @@ function buildAndSortRanking(sorted_emps, selectedIndicator) {
     thead.innerHTML = `
         <tr>
             <th>Analista</th>
-            <th class="${selectedIndicator === 'growth_s' ? 'highlight-column' : ''}">Crecimiento Saldo</th>
+            <th class="${selectedIndicator === 'vmcbm' ? 'highlight-column' : ''}">Crecimiento Saldo</th>
             <th>Saldo Meta</th>
-            <th class="${selectedIndicator === 'growth_c' ? 'highlight-column' : ''}">Crecimiento Clientes</th>
+            <th class="${selectedIndicator === 'vmcbc' ? 'highlight-column' : ''}">Crecimiento Clientes</th>
             <th>Clientes Meta</th>
-            <th class="${selectedIndicator === 'productivity' ? 'highlight-column' : ''}">Desembolsos</th>
+            <th class="${selectedIndicator === 'donton' ? 'highlight-column' : ''}">Desembolsos</th>
             <th>Meta Desembolsos</th>
         </tr>`;
     sortedTable.appendChild(thead);
@@ -127,6 +127,16 @@ function buildAndSortRanking(sorted_emps, selectedIndicator) {
     const tbody = document.createElement('tbody');
     const table_ref = document.getElementById('PairsTable');
     const rows = table_ref.getElementsByTagName('tr');
+
+    let totalValues = {
+        crecimientoSaldo: 0,
+        saldoMeta: 0,
+        crecimientoClientes: 0,
+        clientesMeta: 0,
+        desembolsos: 0,
+        metaDesembolsos: 0,
+        count: 0
+    };
 
     sorted_emps.forEach(emp => {
         const pairRow = Array.from(rows).find(row => {
@@ -141,37 +151,94 @@ function buildAndSortRanking(sorted_emps, selectedIndicator) {
                 const newRow = pairRow.cloneNode(true);
                 newRow.className = 'displayed-pairs-row';
                 const checkboxCell = newRow.querySelector('td');
-                
+
                 if (checkboxCell) {
                     checkboxCell.remove();
                 }
 
                 tbody.appendChild(newRow);
+
+                totalValues.crecimientoSaldo += parseFloat(newRow.cells[1].textContent) || 0;
+                totalValues.saldoMeta += parseFloat(newRow.cells[2].textContent) || 0;
+                totalValues.crecimientoClientes += parseFloat(newRow.cells[3].textContent) || 0;
+                totalValues.clientesMeta += parseFloat(newRow.cells[4].textContent) || 0;
+                totalValues.desembolsos += parseFloat(newRow.cells[5].textContent) || 0;
+                totalValues.metaDesembolsos += parseFloat(newRow.cells[6].textContent) || 0;
+                totalValues.count++;
             }
         }
     });
+
+    // Agregar fila del promedio del evaluado
+    if (totalValues.count > 0) {
+        const targetAverageRow = document.createElement('tr');
+        const avg_target = target_data.full_avg_target.average[0];
+        console.log(avg_target);
+        targetAverageRow.innerHTML = `
+            <td><strong>PROMEDIO</strong></td>
+            <td>${avg_target.smeta.toFixed(2)}</td>
+            <td>${avg_target.vmcbm.toFixed(2)}</td>
+            <td>${avg_target.cmeta.toFixed(2)}</td>
+            <td>${avg_target.vmcbc.toFixed(2)}</td>
+            <td>${avg_target.pmeta.toFixed(2)}</td>
+            <td>${avg_target.donton.toFixed(2)}</td>
+        `;
+        
+        targetAverageRow.classList.add('sticky-target-average-row'); // Clase para estilo sticky
+        tbody.insertBefore(targetAverageRow, tbody.firstChild); // Insertar justo debajo del encabezado
+    }
+
+    // Agregar fila de promedios
+    if (totalValues.count > 0) {
+        const averageRow = document.createElement('tr');
+        averageRow.innerHTML = `
+            <td><strong>PROMEDIO</strong></td>
+            <td><strong>${(totalValues.crecimientoSaldo / totalValues.count).toFixed(2)}</strong></td>
+            <td><strong>${(totalValues.saldoMeta / totalValues.count).toFixed(2)}</strong></td>
+            <td><strong>${(totalValues.crecimientoClientes / totalValues.count).toFixed(2)}</strong></td>
+            <td><strong>${(totalValues.clientesMeta / totalValues.count).toFixed(2)}</strong></td>
+            <td><strong>${(totalValues.desembolsos / totalValues.count).toFixed(2)}</strong></td>
+            <td><strong>${(totalValues.metaDesembolsos / totalValues.count).toFixed(2)}</strong></td>
+        `;
+        
+        averageRow.classList.add('sticky-average-row'); // Asegúrate de que tenga el mismo estilo
+        tbody.insertBefore(averageRow, tbody.firstChild); // Agregar la fila de promedios al tbody
+    }
 
     sortedTable.appendChild(tbody);
     
     sortedTableContainer.appendChild(sortedTable);
 }
 
-function buildRankingTable(ranks){
+function buildRankingTable(ranks, target_data){
     const ranking_buttons = document.getElementById('RankingButtons');
     ranking_buttons.innerHTML = '';
 
     const indicators_lookup = {};
-    indicators_lookup['growth_s'] = 'Crec. Saldo';
-    indicators_lookup['growth_c'] = 'Crec. Clientes';
-    indicators_lookup['productivity'] = 'Desembolsos';
+    indicators_lookup['vmcbm'] = 'Crec. Saldo';
+    indicators_lookup['vmcbc'] = 'Crec. Clientes';
+    indicators_lookup['donton'] = 'Desembolsos';
 
     const indicators = Object.keys(ranks);
     indicators.forEach(indicator => {
         const button = document.createElement('button');
         button.textContent = indicators_lookup[indicator];
-        button.onclick = () => buildAndSortRanking(ranks[indicator], indicator);
+        button.onclick = () => buildAndSortRanking(ranks[indicator], indicator, target_data);
         ranking_buttons.appendChild(button);
     });
+}
+
+function setTargetAttrs(tables) {
+    const target_attrs = document.getElementById('TargetAttrs');
+    target_attrs.innerHTML = '';
+
+    const attrs = tables.full_avg_target.attrs;
+    target_attrs.innerHTML += `
+        <strong>Región:</strong> ${attrs.region}<br>
+        <strong>Zona:</strong> ${attrs.zone}<br>
+        <strong>Agencia:</strong> ${attrs.agency}<br>
+        <strong>Categoría:</strong> ${attrs.category}<br>
+    `;
 }
 
 function getDateRange() {
@@ -217,7 +284,8 @@ document.getElementById('FiltersPanel').addEventListener('click', function(event
             .then(response => {
                 if (response.data.pairs.length > 0){
                     displayResults(response.data.pairs, idContainer, 'indicator');
-                    buildRankingTable(response.data.ranks);
+                    setTargetAttrs(response.data.tables);
+                    buildRankingTable(response.data.ranks, response.data.tables);
                 }
                 else{
                     document.getElementById(idContainer).textContent = 'No se encontraron pares'

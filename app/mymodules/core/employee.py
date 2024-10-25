@@ -13,17 +13,17 @@ class EmployeeCapture:
         self.hire_date = hire_date
         self.selected = False
         self.smeta = 0
-        self.growth_s = 0
+        self.vmcbm = 0
         self.cmeta = 0
-        self.growth_c = 0
+        self.vmcbc = 0
         self.pmeta = 0
-        self.productivity = 0
+        self.donton = 0
 
     def set_numbers(self, *values: int) -> None:
         if len(values) != 6:
             raise ValueError("Insuficient values -> required 6.")
         
-        self.smeta, self.growth_s, self.cmeta, self.growth_c, self.pmeta, self.productivity = values
+        self.smeta, self.vmcbm, self.cmeta, self.vmcbc, self.pmeta, self.donton = values
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -34,10 +34,10 @@ class EmployeeCapture:
             'hire_date': self.hire_date.strftime('%d/%m/%Y'),
             'selected': self.selected,
             'smeta': self.smeta,
-            'growth_s': self.growth_s,
+            'vmcbm': self.vmcbm,
             'cmeta': self.cmeta,
-            'growth_c': self.growth_c,
+            'vmcbc': self.vmcbc,
             'pmeta': self.pmeta,
-            'productivity': self.productivity,
+            'donton': self.donton,
         }
     
