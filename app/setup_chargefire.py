@@ -9,11 +9,7 @@ def build_executable():
         '--name', 'chargefire',  # Change this to your desired executable name
         'app/chargefire.py',      # Path to your main script
         '--add-data', 'app/static;static',  # Include static files if needed
-        
-        # Include your custom modules as hidden imports
-        '--hidden-import', 'app/mymodules/core;core',
-        '--hidden-import', 'app/mymodules/database;database',
-        '--hidden-import', 'app/mymodules/thisconstants;thisconstants',
+        '--add-data', 'app/mymodules;mymodules',
 
         # Include external libraries as hidden imports
         '--hidden-import', 'flask',
