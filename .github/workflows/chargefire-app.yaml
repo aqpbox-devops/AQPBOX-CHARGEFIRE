@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3  # Update to v3
+        uses: actions/checkout@v3  # Updated to v3
 
       - name: Set up Python
-        uses: actions/setup-python@v3  # Update to v3
+        uses: actions/setup-python@v3  # Updated to v3
         with:
           python-version: '3.x'  # Specify your Python version
 
@@ -27,7 +27,7 @@ jobs:
 
       - name: Build executable with PyInstaller
         run: |
-          pyinstaller --onefile app/chargefire.py  # Adjust as necessary
+          pyinstaller --onefile --paths=./app/mymodules --hidden-import=mymodules.core.app_chargefire app/chargefire.py  # Adjust as necessary
 
       - name: Archive the executable and static files
         run: |
@@ -42,7 +42,7 @@ jobs:
           curl http://127.0.0.1:5000/  # Check if app responds
 
       - name: Upload executable and static files as artifact
-        uses: actions/upload-artifact@v3  # Update to v3
+        uses: actions/upload-artifact@v3  # Updated to v3
         with:
           name: app-executable-and-static
           path: artifacts/  # Upload everything in artifacts folder
