@@ -11,13 +11,9 @@ def build_executable():
         '--add-data', 'app/static;static',  # Include static files if needed
         
         # Include your custom modules as hidden imports
-        '--hidden-import', 'mymodules.core.app_chargefire',
-        '--hidden-import', 'mymodules.core.appcore',
-        '--hidden-import', 'mymodules.core.employee',
-        '--hidden-import', 'mymodules.core.excel_builder',
-        '--hidden-import', 'mymodules.database.indexers',
-        '--hidden-import', 'mymodules.thisconstants.functions',
-        '--hidden-import', 'mymodules.thisconstants.vars',
+        '--hidden-import', 'app/mymodules/core;core',
+        '--hidden-import', 'app/mymodules/database;database',
+        '--hidden-import', 'app/mymodules/thisconstants;thisconstants',
 
         # Include external libraries as hidden imports
         '--hidden-import', 'flask',
