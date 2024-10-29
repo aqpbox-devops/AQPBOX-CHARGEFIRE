@@ -27,7 +27,7 @@ jobs:
 
       - name: Build executable with PyInstaller
         run: |
-          pyinstaller --onefile --paths=./app/mymodules --hidden-import=mymodules.core.app_chargefire app/chargefire.py  # Adjust as necessary
+          python app/build_executable.py  # Run the build script
 
       - name: Archive the executable and static files
         run: |
