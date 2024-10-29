@@ -24,12 +24,12 @@ function createEmployeeCard(emp, mode) {
         card.innerHTML = `
             <td><input type="checkbox" class="select-checkbox" ${emp.selected ? '' : 'checked'} /></td>
             <td>${emp.username}</td>
-            <td>${emp.smeta}</td>
             <td>${emp.vmcbm}</td>
-            <td>${emp.cmeta}</td>
+            <td>${emp.smeta}</td>
             <td>${emp.vmcbc}</td>
-            <td>${emp.pmeta}</td>
+            <td>${emp.cmeta}</td>
             <td>${emp.donton}</td>
+            <td>${emp.pmeta}</td>
         `;
         return card;
     }
@@ -270,6 +270,8 @@ document.getElementById('FiltersPanel').addEventListener('click', function(event
         const zone = document.getElementById('FlagZone').classList.contains('active');
         const agency = document.getElementById('FlagAgency').classList.contains('active');
         
+        const monthly = document.getElementById("MonthlyCheck").checked;
+
         const flags = {
             region,
             zone,
@@ -294,5 +296,29 @@ document.getElementById('FiltersPanel').addEventListener('click', function(event
             .catch(error => {
                 document.getElementById(idContainer).value = error.error
             });
+    }
+});
+
+document.getElementById('PairFinderInTable').addEventListener('keyup', function() {
+    const filter = this.value.toLowerCase();
+    
+    const table = document.getElementById('PairsTable');
+    const rows = table.getElementsByTagName('tr');
+
+    if (table){
+
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName('td');
+            const analistaCell = cells[1];
+
+            if (analistaCell) {
+                const username = analistaCell.textContent || analistaCell.innerText;
+                if (username.toLowerCase().indexOf(filter) > -1) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        }
     }
 });

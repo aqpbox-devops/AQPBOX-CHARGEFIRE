@@ -26,6 +26,14 @@ search_employee_lock = Lock()
 def valid_file(a_path: str) -> bool:
     return os.path.exists(a_path)
 
+def make_exist(dir_path):
+    this_dir = os.path.dirname(dir_path)
+    
+    if not valid_file(this_dir):
+        os.makedirs(this_dir)
+
+    return dir_path
+
 def blob_to_series(blob: bytes) -> pd.Series:
     return pickle.load(io.BytesIO(blob))
 
@@ -51,16 +59,24 @@ def process_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_last_days_of_months(start_date: datetime, end_date: datetime) -> List[int]:
     last_days = []
-    current_date = start_date.replace(day=1)  # Asegurarse de que current_date sea el primer día del mes
+    current_date = start_date
 
     while current_date <= end_date:
-        next_month = current_date.month % 12 + 1
-        year = current_date.year + (current_date.month // 12)
-        last_day = datetime(year, next_month, 1) - timedelta(days=1)
+        if current_date.month == 12:
+            next_month = 1
+            next_year = current_date.year + 1
+        else:
+            next_month = current_date.month + 1
+            next_year = current_date.year
+        
+        current_date = current_date.replace(year=next_year, month=next_month, day=1)
+        
+        last_day_of_previous_month = current_date - timedelta(days=1)
+        
+        if last_day_of_previous_month <= end_date:
+            last_days.append(int(last_day_of_previous_month.timestamp()))
 
-        last_days.append(int(last_day.timestamp()))
-
-        current_date = last_day + timedelta(days=1)
+    print(last_days)
 
     return last_days
 
@@ -74,7 +90,7 @@ def to_snapshot_getter(period: Tuple[datetime, datetime], daily: bool=False) -> 
 
 class BANTOTALRecordsSQLiteConnection:
     def __init__(self, dir: str, db_name: str = 'BANTOTAL(R)327-017.sqlite') -> None:
-        self.db_path = os.path.join(dir, db_name)
+        self.db_path = make_exist(os.path.join(dir, db_name))
         self.connection = None
         self.cursor = None
         self.indexer_username = None
@@ -165,7 +181,21 @@ class BANTOTALRecordsSQLiteConnection:
 
         df = pd.DataFrame(rows, columns=column_names)
 
-        return process_dataframe(df)
+        def move_columns_to_end(df, columns_to_move, new_order=None):
+            if new_order is None:
+                new_order = columns_to_move
+
+            for col in columns_to_move:
+                if col not in df.columns:
+                    raise ValueError(f"La columna '{col}' no existe en el DataFrame.")
+
+            remaining_columns = [col for col in df.columns if col not in columns_to_move]
+
+            new_columns = remaining_columns + new_order
+
+            return df[new_columns]
+        
+        return process_dataframe(move_columns_to_end(df, ['r017_data', 'r327_data']))
 
     def get_employees_by(self, query: List[str|int], column='employee_code') -> List[EmployeeCapture]:
         results: List[EmployeeCapture] = []

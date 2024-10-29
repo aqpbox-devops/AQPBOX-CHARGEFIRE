@@ -1,0 +1,48 @@
+name: Cargo&Despido
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'  # Cambia '3.x' a la versión específica que necesites
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller  # Instalar PyInstaller
+
+      - name: Build executable with PyInstaller
+        run: |
+          pyinstaller --onefile app/chargefire.py  # Cambia esto si el archivo principal tiene otro nombre o ubicación
+
+      - name: Archive the executable and static files
+        run: |
+          mkdir -p artifacts
+          mv dist/chargefire artifacts/  # Mueve el ejecutable a la carpeta de artefactos
+          cp -r app/static artifacts/static  # Copia la carpeta static a la carpeta de artefactos
+
+      - name: Run the executable and test
+        run: |
+          ./artifacts/chargefire &  # Ejecutar el ejecutable en segundo plano
+          sleep 10  # Esperar un momento para que la app inicie
+          curl http://127.0.0.1:5000/  # Realizar una solicitud para verificar que la app responde
+
+      - name: Upload executable and static files as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: app-executable-and-static
+          path: artifacts/  # Sube todo lo que hay en la carpeta de artefactos

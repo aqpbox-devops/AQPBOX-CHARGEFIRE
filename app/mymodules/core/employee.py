@@ -27,17 +27,17 @@ class EmployeeCapture:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            'employee_code': self.employee_code,
-            'employee_dni': self.employee_dni,
+            'employee_code': str(self.employee_code),
+            'employee_dni': str(self.employee_dni),
             'username': self.username.upper(),
             'names': self.names.title(),
             'hire_date': self.hire_date.strftime('%d/%m/%Y'),
             'selected': self.selected,
-            'smeta': self.smeta,
-            'vmcbm': self.vmcbm,
-            'cmeta': self.cmeta,
-            'vmcbc': self.vmcbc,
-            'pmeta': self.pmeta,
-            'donton': self.donton,
+            'smeta': str(self.smeta),
+            'vmcbm': str(self.vmcbm),
+            'cmeta': str(self.cmeta),
+            'vmcbc': str(self.vmcbc),
+            'pmeta': str(self.pmeta),
+            'donton': str(self.donton),
         }
     

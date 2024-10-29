@@ -1,6 +1,7 @@
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.formatting.rule import IconSetRule
+import os
 
 def apply_borders(ws, topleft: str, len_cols: int, len_rows: int):
     thin_border = Border(left=Side(style='thin'), 
@@ -81,7 +82,7 @@ def build_data_row(ws, data: list, topleft: str, traffic_light_columns: list=[4]
         ws.cell(row=top_row, column=col_index).alignment = Alignment(horizontal='center', vertical='center')
 
     for i in traffic_light_columns:
-        icon_set_rule = IconSetRule('3TrafficLights1', type='num', values=[0, 10], showValue=None)
+        icon_set_rule = IconSetRule('3TrafficLights1', type='num', values=[-10000000, 10000000], showValue=None)
         ws.conditional_formatting.add(f"{openpyxl.utils.get_column_letter(left_col + i)}{top_row}:{openpyxl.utils.get_column_letter(left_col + i)}{top_row}", icon_set_rule)
 
     apply_borders(ws, f"{topleft[0]}{top_row}", len_cols=len(data), len_rows=1)
@@ -159,4 +160,13 @@ def build_tables(tables, download_path: str):
 
     wb.remove(wb[sheet0])
 
+    base_path, extension = os.path.splitext(download_path)
+    counter = 1
+
+    while os.path.exists(download_path):
+        download_path = f"{base_path} ({counter}){extension}"
+        counter += 1
+
     wb.save(download_path)
+
+    return download_path

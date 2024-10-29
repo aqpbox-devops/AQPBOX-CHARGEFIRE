@@ -74,11 +74,11 @@ def generate_excel_tables(banned_pairs):
         
         full_download_path = download_dir(fn)
 
-        build_tables(response_data, full_download_path)
+        full_download_path = build_tables(response_data, full_download_path)
         return jsonify({'xlsx_path': full_download_path}), 200
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

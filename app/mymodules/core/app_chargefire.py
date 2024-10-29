@@ -17,9 +17,9 @@ class ChargeFireApp(AppCore):
         super().__init__()
         self.paired_employees: pd.DataFrame = None
         self.filters_sql: Dict[str, str] = {
-            'region': 'region=(SELECT region FROM {})',
-            'zone': 'zone=(SELECT zone FROM {})',
-            'agency': 'agency=(SELECT agency FROM {})'
+            'region': 'region={}',
+            'zone': 'zone={}',
+            'agency': 'agency={}'
         }
         self.critical_indicators = {'vmcbm': 1.0, 'vmcbc': 0.5, 'donton': 0.3}
 
@@ -42,110 +42,127 @@ class ChargeFireApp(AppCore):
         return target, pairs
     
     def pick_pairs(self, flags: Dict[str, bool]) -> Dict[str, Any]:
-
         response_data = {'pairs': []}
 
-        if self.target_employee is not None:
+        if self.target_employee is None:
+            return response_data
 
-            any_true = False
+        daily = False
+        frequency_snapshot = to_snapshot_getter((datetime.strptime(flags['start_date'], "%Y-%m-%d"), 
+                                                 datetime.strptime(flags['end_date'], "%Y-%m-%d")), 
+                                                 daily=daily)
 
-            filters: List[str] = []
+        filters: List[str] = [self.filters_sql[key] for key, value in flags.items() if key not in ['start_date', 'end_date'] and value]
 
-            frequency_snapshot = to_snapshot_getter((datetime.strptime(flags['start_date'], "%Y-%m-%d"), 
-                                                     datetime.strptime(flags['end_date'], "%Y-%m-%d")))
-            
-            for key, value in flags.items():
-                if key.endswith('date'):
-                    continue
-                any_true |= value
-                if value:
-                    filters.append(self.filters_sql[key])
-
-            query = f'''
-            WITH TargetEmployee AS (
-                SELECT *
-                FROM R017_327
-                WHERE employee_code = {self.target_employee.employee_code}
-                AND {frequency_snapshot}
-            )
+        query = f'''
+        WITH TargetEmployee AS (
             SELECT *
             FROM R017_327
-            WHERE employee_code = {self.target_employee.employee_code}  -- Incluir al target employee
-            OR (
-                category = (SELECT category FROM TargetEmployee)
-                AND (cmeta = (SELECT cmeta FROM TargetEmployee) 
-                    AND smeta = (SELECT smeta FROM TargetEmployee) 
-                    AND pmeta = (SELECT pmeta FROM TargetEmployee))
-                AND worked_days > 14
+            WHERE employee_code = {self.target_employee.employee_code}
+            AND {frequency_snapshot}  -- Asegúrate de que esto filtre correctamente por fecha
+            ORDER BY snapshot_date DESC  -- Cambia 'snapshot_date' por el nombre real de tu columna de timestamp
+        ),
+        FilteredTargetEmployee AS (
+            SELECT *,
+                LAG(region) OVER (ORDER BY snapshot_date DESC) AS prev_region,
+                LAG(zone) OVER (ORDER BY snapshot_date DESC) AS prev_zone,
+                LAG(agency) OVER (ORDER BY snapshot_date DESC) AS prev_agency,
+                LAG(category) OVER (ORDER BY snapshot_date DESC) AS prev_category
+            FROM TargetEmployee
+        )
+        SELECT *
+        FROM FilteredTargetEmployee
+        WHERE 
+            (region = prev_region AND zone = prev_zone AND agency = prev_agency AND category = prev_category)
+            OR prev_region IS NULL;  -- Incluye el primer registro donde no hay cambios
+        '''
+
+        df = pd.DataFrame(self.connection.fetch_all(query))
+        
+        if df.empty:
+            return response_data
+        
+        if not df.empty:
+            region = df['region'].iloc[0]
+            zone = df['zone'].iloc[0]
+            agency = df['agency'].iloc[0]
+            category = df['category'].iloc[0]
+
+            filters = {key: value.format(f"'{locals()[key]}'") for key, value in self.filters_sql.items() if key in flags and flags[key]}
+
+            active_filter = next(iter(filters.values()))
+
+            query_pairs = f'''
+                SELECT *
+                FROM R017_327
+                WHERE {active_filter}
                 AND {frequency_snapshot}
-                AND {'\nAND '.join([filter.format(*(['TargetEmployee']*(filter.count('{}')))) for filter in filters])}
-            )
-            GROUP BY employee_code;
+                AND category = '{category}'
+                AND worked_days > 14
+                AND employee_code != {self.target_employee.employee_code}  -- Excluir al empleado objetivo
             '''
 
-            if any_true:
-                self.paired_employees = self.connection.fetch_all(query)
+            pairs_df = pd.DataFrame(self.connection.fetch_all(query_pairs))
 
-                target_employee_data = self.paired_employees[self.paired_employees['employee_code'] == self.target_employee.employee_code]
+            target_cmeta = df['cmeta'].mean()
+            target_smeta = df['smeta'].mean()
+            target_pmeta = df['pmeta'].mean()
 
-                mutable_columns = ['region', 'zone', 'agency', 'category']
+            if not pairs_df.empty:
                 
-                target_employee_data = target_employee_data.sort_values(by='snapshot_date', ascending=False)
+                averages_pairs = pairs_df.groupby('employee_code').agg({
+                    'employee_dni': 'first',
+                    'username': 'first',
+                    'names': 'first',
+                    'hire_date': 'first',
+                    'vmcbm': 'mean',
+                    'smeta': 'mean',
+                    'vmcbc': 'mean',
+                    'cmeta': 'mean',
+                    'donton': 'mean',
+                    'pmeta': 'mean'
+                }).reset_index()
 
-                dates_to_remove = set()
+                filtered_pairs = averages_pairs[
+                    (averages_pairs['cmeta'] == target_cmeta) &
+                    (averages_pairs['smeta'] == target_smeta) &
+                    (averages_pairs['pmeta'] == target_pmeta)
+                ]
 
-                for _, row in target_employee_data.iterrows():
-                    snapshot_date = row['snapshot_date']
-                    
-                    changes_detected = any(
-                        (self.paired_employees[self.paired_employees['snapshot_date'] == snapshot_date][col].nunique() > 1)
-                        for col in mutable_columns
-                    )
-                    
-                    if changes_detected:
-                        dates_to_remove.add(snapshot_date)
+                valid_pairs = pairs_df[pairs_df['employee_code'].isin(filtered_pairs['employee_code'])]
 
-                self.paired_employees = self.paired_employees[~self.paired_employees['snapshot_date'].isin(dates_to_remove)]
+                df = df[valid_pairs.columns]
 
-                conflict_mask = self.paired_employees.groupby('employee_code')[mutable_columns].nunique()
+                self.paired_employees = pd.concat([df, valid_pairs])
 
-                conflicting_employees = conflict_mask[conflict_mask.gt(1).any(axis=1)].index.tolist()
+                self.paired_employees['smeta'] = self.paired_employees['smeta'].round(1)
+                self.paired_employees['vmcbm'] = self.paired_employees['vmcbm'].round(2)
+                self.paired_employees['cmeta'] = self.paired_employees['cmeta'].round(1)
+                self.paired_employees['vmcbc'] = self.paired_employees['vmcbc'].round(2)
+                self.paired_employees['pmeta'] = self.paired_employees['pmeta'].round(1)
+                self.paired_employees['donton'] = self.paired_employees['donton'].round(2)
 
-                self.paired_employees = self.paired_employees[~self.paired_employees['employee_code'].isin(conflicting_employees)]
+                for _, row in filtered_pairs.iterrows():
+                    an_employee_code = int(row['employee_code'])
 
-                last_employee_code = -1
-
-                cols = list(self.critical_indicators.keys())
-
-                for row in self.paired_employees.itertuples(index=True):
-                    if row.employee_code == self.target_employee.employee_code:
-                        response_data['target_info'] = {
-                            'category': row.category, 
-                            'region': row.region, 
-                            'zone': row.zone, 
-                            'agency': row.agency,
-                            'worked_days': row.worked_days
-                        }
+                    if an_employee_code == self.target_employee.employee_code:
                         continue
 
-                    if last_employee_code != row.employee_code:
-                        pair_code = int(row.employee_code)
-                        new_pair = EmployeeCapture(pair_code, 
-                                                   int(row.employee_dni), 
-                                                   row.username, 
-                                                   row.names, 
-                                                   datetime.fromtimestamp(int(row.hire_date)))
-                        
-                        pair_info = self.paired_employees.query(f'employee_code == {pair_code}')[cols + ['smeta', 'cmeta', 'pmeta']].mean(axis=0)
-                        print(pair_info.info())
-                        new_pair.set_numbers(pair_info['vmcbm'], pair_info['smeta'],
-                                             pair_info['vmcbc'], pair_info['cmeta'],
-                                             pair_info['donton'], pair_info['pmeta'])
-                        response_data['pairs'].append(new_pair)
+                    new_pair = EmployeeCapture(
+                        an_employee_code,
+                        int(row['employee_dni']),
+                        row['username'],
+                        row['names'],
+                        datetime.fromtimestamp(int(row['hire_date']))
+                    )
 
-                        last_employee_code = row.employee_code
+                    new_pair.set_numbers(
+                        round(row['smeta'], 1), round(row['vmcbm'], 2),
+                        round(row['cmeta'], 1), round(row['vmcbc'], 2),
+                        round(row['pmeta'], 1), round(row['donton'], 2)
+                    )
 
-        response_data['pairs'] = [emp.to_dict() for emp in response_data['pairs']]
+                    response_data['pairs'].append(new_pair.to_dict())
 
         return response_data
     
@@ -154,38 +171,45 @@ class ChargeFireApp(AppCore):
         response_data = {'ranks': {}}
 
         if self.paired_employees is not None and self.target_employee is not None:
+            target, pairs = self.target_and_pairs(['username'])
+
             for indicator in self.critical_indicators:
-                ranked_indices = self.paired_employees[indicator].rank().astype(int)
-                sorted_employee_codes = self.paired_employees.loc[ranked_indices.sort_values().index, 'username'].tolist()
-                response_data['ranks'][indicator] = sorted_employee_codes
-                
+                averages = pairs.groupby('employee_code')[indicator].mean().reset_index()
+                averages = averages.sort_values(by=indicator, ascending=False)
+
+                sorted_employee_codes = pairs[pairs['employee_code'].isin(averages['employee_code'])] \
+                    .drop_duplicates(subset='username') \
+                    .set_index('employee_code').loc[averages['employee_code']]['username'].tolist()
+
+                response_data['ranks'][indicator] = sorted_employee_codes[::-1]
+
         return response_data
     
     def worst_pairs(self) -> Dict[str, Any]:
-
         response_data = {'worst': []}
 
         if self.paired_employees is not None and self.target_employee is not None:
-
             target, pairs = self.target_and_pairs()
 
             cols = list(self.critical_indicators.keys())
 
             target_average = target.groupby('snapshot_date')[cols].mean().reset_index()
 
-            pairs_average = pairs.groupby(['snapshot_date', 'employee_code'])[cols].mean().reset_index()
-            
-            comparison = target_average[cols] > pairs_average[cols].mean()
+            pairs_average = pairs.groupby('employee_code')[cols].mean().reset_index()
 
-            if comparison.any().any():
+            comparison = target_average[cols].mean() > pairs_average[cols].mean()
 
-                pairs['weighted_sum'] = (pairs['vmcbm'] * self.critical_indicators['vmcbm'] +
-                                         pairs['vmcbc'] * self.critical_indicators['vmcbc'] +
-                                         pairs['donton'] * self.critical_indicators['donton'])
+            if comparison.any():
 
-                threshold = pairs['weighted_sum'].quantile(1/3)
+                pairs_average['weighted_sum'] = (
+                    pairs_average['vmcbm'] * self.critical_indicators['vmcbm'] +
+                    pairs_average['vmcbc'] * self.critical_indicators['vmcbc'] +
+                    pairs_average['donton'] * self.critical_indicators['donton']
+                )
 
-                response_data['worst'] = pairs[pairs['weighted_sum'] < threshold]['employee_code'].tolist()
+                threshold = pairs_average['weighted_sum'].quantile(1/3)
+
+                response_data['worst'] = pairs_average[pairs_average['weighted_sum'] < threshold]['employee_code'].tolist()
 
         return response_data
 
@@ -208,12 +232,12 @@ class ChargeFireApp(AppCore):
             for index, row in df.iterrows():
                 snapshot_dict = {
                     'month': MONTHS_SPANISH[row['snapshot_date_t'].month].upper(), 
-                    'smeta': row['smeta'], 
-                    'vmcbm': row['vmcbm'], 
-                    'cmeta': row['cmeta'], 
-                    'vmcbc': row['vmcbc'], 
-                    'pmeta': row['pmeta'], 
-                    'donton': row['donton']
+                    'smeta': round(row['smeta'], 1),
+                    'vmcbm': round(row['vmcbm'], 2), 
+                    'cmeta': round(row['cmeta'], 1),
+                    'vmcbc': round(row['vmcbc'], 2), 
+                    'pmeta': round(row['pmeta'], 1), 
+                    'donton': round(row['donton'], 2)
                 }
                 snapshots_list.append(snapshot_dict) 
 
@@ -298,8 +322,8 @@ if __name__ == '__main__':
     
     print(ChargeFireApp().select_target_employee('aquispej', 'username'))
 
-    print(ChargeFireApp().pick_pairs({'region': True, 'zone': False, 'agency': True, 
-                                      'start_date': '2024-09-01', 'end_date': '2024-10-22'}))
+    print(ChargeFireApp().pick_pairs({'region': False, 'zone': True, 'agency': False, 
+                                      'start_date': '2024-01-01', 'end_date': '2024-10-22'}))
 
     print(ChargeFireApp().rank_pairs())
     print(ChargeFireApp().worst_pairs())

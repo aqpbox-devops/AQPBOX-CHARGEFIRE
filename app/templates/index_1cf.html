@@ -9,6 +9,12 @@
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+    <div id="loadingScreen" style="display: none;">
+        <div id="loadingMessage">Cargando base de datos...</div>
+        <div id="loadingBar">
+            <div id="progress"></div>
+        </div>
+    </div>
     <div class="flex-panel">
         <div id="HalfPanelLeft">
             <div class="db-search_employee">
@@ -30,6 +36,12 @@
                 <div class="filter-buttons" id="FiltersPanel">
                     <h2>Filtros de búsqueda de pares</h2>
                     <div class="month-range">
+                        <div>
+                            <label>
+                                <input id="MonthlyCheck" type="checkbox" checked />
+                                ¿Por fines de mes?
+                            </label>
+                        </div>
                         <label for="SelectedMonth">Mes:</label>
                         <select id="SelectedMonth">
                             <option value="1">Enero</option>
@@ -52,6 +64,7 @@
                     <button id="FlagRegion" onclick="restrictiveToggleFilter(['FlagRegion', 'FlagZone', 'FlagAgency'])">Region</button>
                     <button id="FlagZone" onclick="restrictiveToggleFilter(['FlagZone', 'FlagRegion', 'FlagAgency'])">Zona</button>
                     <button id="FlagAgency" onclick="restrictiveToggleFilter(['FlagAgency', 'FlagRegion', 'FlagZone'])">Agencia</button>
+                    <input type="text" id="PairFinderInTable" placeholder="Rebuscar 'par' por nombre de usuario"/>
                 </div>
                 <div class="card-container" id="FilteredPairsResults"></div>
             </div>
