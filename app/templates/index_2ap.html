@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desempeño de Agencias</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="flex-panel">
+    <div class="db-search_employee" id="SearchZone4Perf">
+        <h2>Buscar empleado</h2>
+        <div>
+            <label for="SearchMode">Modo de Búsqueda:</label>
+            <select id="SearchMode" style="width:60% !important;">
+                <option value="code">Código OFISIS</option>
+                <option value="dni">DNI</option>
+                <option value="username">Nombre de Usuario</option>
+                <option value="fullname">Nombres y Apellidos</option>
+            </select>
+            <input type="text" id="SearchEmployee" style="width:100%;" placeholder="Buscar empleado">
+            <div class="card-container" id="EmployeeResults" style="max-height:500px !important;"></div>
+        </div>
+    </div>
+    <div id="AgencyPerformance">
+        <table class="performance-panel" id="AgencyPerformanceTable">
+            <thead>
+                <tr>
+                    <th>ANALISTA</th>
+                    <th id="ph-Analist" colspan="5"></th>
+                    <th colspan="4">AGENCIA</th>
+                    <th id="ph-Agency" colspan="5"></th>
+                </tr>
+                <tr>
+                    <th>CATEGORÍA</th>
+                    <th id="ph-Category" colspan="5"></th>
+                    <th colspan="4">ANTIGÜEDAD EN CAJA</th>
+                    <th id="ph-Longevity" colspan="5"></th>
+                </tr>
+                <tr>
+                    <th rowspan="2">Mes</th>
+                    <th colspan="5">Crecimiento Anual Saldo</th>
+                    <th colspan="5">Crecimiento Anual Número</th>
+                    <th colspan="2">Productividad</th>
+                    <th colspan="2">Retenc. - Conten.</th>
+                    <th colspan="3">Puntajes</th>
+                </tr>
+                <tr>
+                    <th>SALDO</th>
+                    <th>CRECIM.</th>
+                    <th>META</th>
+                    <th>DIFER.</th>
+                    <th>CUMPL. %</th>
+                    <th>N°</th>
+                    <th>CRECIM.</th>
+                    <th>META</th>
+                    <th>DIFER.</th>
+                    <th>CUMPL. %</th>
+                    <th>N°</th>
+                    <th>CUMPL. %</th>
+                    <th>%</th>
+                    <th>%</th>
+                    <th>Mora<br>SBS</th>
+                    <th>Puntaje<br>Total</th>
+                    <th>Calificación</th>
+                </tr>
+            </thead>
+            <tbody id="APTBody">
+                <!-- Filas para cada mes -->
+                <tr><td>ENERO</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>FEBRERO</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>MARZO</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>ABRIL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>MAYO</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>JUNIO</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>AGOSTO</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>SETIEMBRE</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>OCTUBRE</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>NOVIEMBRE</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><td>DICIEMBRE</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                <tr><th>AVANCE DEL AÑO</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr>
+            </tbody>
+        </table>
+    </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/buttons_style.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/db_connection.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/db_get_employee.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/db_performance.js') }}"></script>
+</body>
+</html>

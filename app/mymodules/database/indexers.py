@@ -121,8 +121,6 @@ class CharTrieIndexer:
             if exist is not None:
                 exact_match = exist
 
-        print('???', type(exact_match))
-        
         if exact_match is not None and len(exact_match) == 1:
             exact_match = exact_match.pop()
             found_values.discard(exact_match)

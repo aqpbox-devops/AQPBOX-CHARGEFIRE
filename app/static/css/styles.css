@@ -191,14 +191,25 @@ button.active {
     z-index: 10;
 }
   
-.displayed-pairs-pannel {
+.displayed-pairs-panel {
     width: 100%;
     border-collapse: collapse;
     margin-top: 0.75rem;
     font-size: var(--font-size-small);
 }
 
-.displayed-pairs-row {
+.performance-panel-row {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.75rem;
+    font-size: var(--font-size-small);
+}
+
+.displayed-pairs-row{
+    transition: box-shadow 0.3s ease;
+}
+
+.performance-panel-row{
     transition: box-shadow 0.3s ease;
 }
 
@@ -206,31 +217,76 @@ button.active {
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
+.performance-panel-row.active {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
 .displayed-pairs-row.active:hover {
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
 }
+
+.performance-panel-row.active:hover {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+}
   
-  .displayed-pairs-pannel th, .displayed-pairs-pannel td {
+  .displayed-pairs-panel th, .displayed-pairs-panel td {
     padding: 0.75rem;
     text-align: center;
     border-bottom: 1px solid var(--border-color);
   }
   
-  .displayed-pairs-pannel th {
+  .displayed-pairs-panel th {
     background-color: var(--table-header-bg);
     font-weight: bold;
     color: var(--text-primary);
   }
   
-  .displayed-pairs-pannel tr:hover {
+  .displayed-pairs-panel tr:hover {
     background-color: var(--table-row-hover);
   }
 
-  .displayed-pairs-pannel thead th {
+  .displayed-pairs-panel thead th {
     position: sticky;
     top: 0;
     z-index: 10;
 }
+
+#SearchZone4Perf{
+    max-width: 25%;
+}
+
+#AgencyPerformance {
+    margin-right: 0.5rem !important;
+    margin-left: 0.5rem !important;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    max-height: 600px;
+    overflow-y: scroll;
+    font-size: var(--font-size-small);
+}
+
+#AgencyPerformance th{
+    padding: 6px;
+}
+#AgencyPerformance td {
+    padding: 4px;
+}
+
+.performance-panel th, .performance-panel td {
+    padding: 0.75rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .performance-panel th {
+    background-color: var(--table-header-bg);
+    font-weight: bold;
+    color: var(--text-primary);
+  }
+  
+  .performance-panel tr:hover {
+    background-color: var(--table-row-hover);
+  }
 
   .highlight-column {
     background-color: var(--accent-color)!important;
@@ -258,7 +314,7 @@ button.active {
       flex-direction: column;
     }
   
-    .displayed-pairs-pannel {
+    .displayed-pairs-panel {
       font-size: var(--font-size-small);
     }
   }

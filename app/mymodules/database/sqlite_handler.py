@@ -168,8 +168,6 @@ class BANTOTALRecordsSQLiteConnection:
         return process_dataframe(df)
 
     def get_employees_by(self, query: List[str|int], column='employee_code') -> List[EmployeeCapture]:
-        print('ON GET EMPLOYEE BY')
-        print(query)
         results: List[EmployeeCapture] = []
 
         for code in query:
@@ -190,7 +188,6 @@ class BANTOTALRecordsSQLiteConnection:
                                            names=names, 
                                            hire_date=datetime.fromtimestamp(hire_date))
                 results.append(employee)
-        print('ON GET EMPLOYEE BY RETURN')
         return results
             
 

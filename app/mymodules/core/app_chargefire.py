@@ -81,7 +81,7 @@ class ChargeFireApp(AppCore):
                 AND {'\nAND '.join([filter.format(*(['TargetEmployee']*(filter.count('{}')))) for filter in filters])}
             )
             GROUP BY employee_code;
-        '''
+            '''
 
             if any_true:
                 self.paired_employees = self.connection.fetch_all(query)

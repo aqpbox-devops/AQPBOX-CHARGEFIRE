@@ -41,3 +41,9 @@ QUALI_LOOKUP = pd.DataFrame({
     'max_value': [9.99, 45.99, 81.99, 1000],
     'description': ['MALO', 'REGULAR', 'BUENO', 'MUY BUENO']
 })
+
+def get_description(value):
+    for _, row in QUALI_LOOKUP.iterrows():
+        if row['min_value'] <= value <= row['max_value']:
+            return row['description']
+    return None

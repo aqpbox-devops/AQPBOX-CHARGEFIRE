@@ -42,7 +42,7 @@ function displayResults(results, idContainer, mode) {
 
     if (mode === 'indicator'){
         container.innerHTML = `
-        <table class="displayed-pairs-pannel" id="PairsTable">
+        <table class="displayed-pairs-panel" id="PairsTable">
             <thead>
                 <tr>
                     <th>Es par</th>
@@ -109,7 +109,7 @@ function buildAndSortRanking(sorted_emps, selectedIndicator, target_data) {
     sortedTableContainer.innerHTML = '';
 
     const sortedTable = document.createElement('table');
-    sortedTable.className = 'displayed-pairs-pannel';
+    sortedTable.className = 'displayed-pairs-panel';
 
     const thead = document.createElement('thead');
     thead.innerHTML = `
@@ -176,12 +176,12 @@ function buildAndSortRanking(sorted_emps, selectedIndicator, target_data) {
         console.log(avg_target);
         targetAverageRow.innerHTML = `
             <td><strong>PROMEDIO</strong></td>
-            <td>${avg_target.smeta.toFixed(2)}</td>
             <td>${avg_target.vmcbm.toFixed(2)}</td>
-            <td>${avg_target.cmeta.toFixed(2)}</td>
+            <td>${avg_target.smeta.toFixed(2)}</td>
             <td>${avg_target.vmcbc.toFixed(2)}</td>
-            <td>${avg_target.pmeta.toFixed(2)}</td>
+            <td>${avg_target.cmeta.toFixed(2)}</td>
             <td>${avg_target.donton.toFixed(2)}</td>
+            <td>${avg_target.pmeta.toFixed(2)}</td>
         `;
         
         targetAverageRow.classList.add('sticky-target-average-row'); // Clase para estilo sticky

@@ -41,7 +41,6 @@ class AppCore:
 
         if mode == 'username' or mode == 'fullname':
             results, exact_match = self.connection.get_codes_ocurrences_by(query, mode)
-            print('?????', type(results), type(exact_match))
             employees += self.connection.get_employees_by(results)
 
             if exact_match is not None:
