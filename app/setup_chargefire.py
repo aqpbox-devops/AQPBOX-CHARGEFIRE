@@ -8,7 +8,6 @@ def build_executable():
         '--clean',
         '--name', 'chargefire',  # Change this to your desired executable name
         'app/chargefire.py',      # Path to your main script
-        '--add-data', 'app/static;static',  # Include static files if needed
         '--add-data', 'app/mymodules;mymodules',
 
         # Include external libraries as hidden imports
