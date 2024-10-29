@@ -12,37 +12,37 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3  # Updated from v2 to v3
+        uses: actions/checkout@v3  # Update to v3
 
       - name: Set up Python
-        uses: actions/setup-python@v3  # Updated from v2 to v3
+        uses: actions/setup-python@v3  # Update to v3
         with:
-          python-version: '3.x'  # Cambia '3.x' a la versión específica que necesites
+          python-version: '3.x'  # Specify your Python version
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyinstaller  # Instalar PyInstaller
+          pip install pyinstaller  # Install PyInstaller
 
       - name: Build executable with PyInstaller
         run: |
-          pyinstaller --onefile app/chargefire.py  # Cambia esto si el archivo principal tiene otro nombre o ubicación
+          pyinstaller --onefile app/chargefire.py  # Adjust as necessary
 
       - name: Archive the executable and static files
         run: |
           mkdir -p artifacts
-          mv dist/chargefire artifacts/  # Mueve el ejecutable a la carpeta de artefactos
-          cp -r app/static artifacts/static  # Copia la carpeta static a la carpeta de artefactos
+          mv dist/chargefire artifacts/  # Move executable to artifacts folder
+          cp -r app/static artifacts/static  # Copy static folder
 
       - name: Run the executable and test
         run: |
-          ./artifacts/chargefire &  # Ejecutar el ejecutable en segundo plano
-          sleep 10  # Esperar un momento para que la app inicie
-          curl http://127.0.0.1:5000/  # Realizar una solicitud para verificar que la app responde
+          ./artifacts/chargefire &  # Run executable in background
+          sleep 10  # Wait for app to start
+          curl http://127.0.0.1:5000/  # Check if app responds
 
       - name: Upload executable and static files as artifact
-        uses: actions/upload-artifact@v3  # Updated from v2 to v3
+        uses: actions/upload-artifact@v3  # Update to v3
         with:
           name: app-executable-and-static
-          path: artifacts/  # Sube todo lo que hay en la carpeta de artefactos
+          path: artifacts/  # Upload everything in artifacts folder
