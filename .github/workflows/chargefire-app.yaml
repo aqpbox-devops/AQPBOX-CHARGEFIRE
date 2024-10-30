@@ -32,12 +32,13 @@ jobs:
       - name: Archive the executable and static files
         run: |
           mkdir -p artifacts
-          mv dist/chargefire artifacts/  # Move executable to artifacts folder
-          cp -r app/static artifacts/static  # Copy static folder
+          mv dist/app.exe artifacts/
+          cp -r app/static artifacts/static
+          cp app/template/index_1cf.html artifacts/template/
 
       - name: Run the executable and test
         run: |
-          ./artifacts/chargefire &  # Run executable in background
+          ./artifacts/chargefire.exe &  # Run executable in background
           sleep 10  # Wait for app to start
           curl http://127.0.0.1:5000/  # Check if app responds
 

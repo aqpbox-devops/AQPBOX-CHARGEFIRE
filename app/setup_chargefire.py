@@ -6,7 +6,7 @@ def build_executable():
         'pyinstaller',
         '--onefile',
         '--clean',
-        '--name', 'chargefire',  # Change this to your desired executable name
+        '--name', 'app',  # Change this to your desired executable name
         'app/chargefire.py',      # Path to your main script
         '--add-data=app/mymodules:mymodules',
 
@@ -16,7 +16,10 @@ def build_executable():
         '--hidden-import', 'numpy',
         '--hidden-import', 'openpyxl',
         '--hidden-import', 'pyyaml',
-        '--hidden-import', 'sqlite3'   # Include SQLite3 as hidden import (standard library)
+        '--hidden-import', 'sqlite3',
+        '--hidden-import', 'shutil',  # Agregado
+        '--hidden-import', 'pickle',   # Agregado
+        '--hidden-import', 'warnings'
     ]
 
     try:

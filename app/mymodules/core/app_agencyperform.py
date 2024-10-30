@@ -42,8 +42,8 @@ class MonthDataWriter:
         self.E = dfE
         
     def add2A(self, balance, growth, goal):
-        row = [balance, growth, goal]
-        difference = growth - goal
+        row = [int(balance), int(growth), int(goal)]
+        difference = round(growth - goal, 3)
         compliance = div_by_0(growth, goal)
 
         row += [difference, compliance]
@@ -51,8 +51,8 @@ class MonthDataWriter:
         self.A.loc[self.id] = row
 
     def add2B(self, clients, growth, goal):
-        row = [clients, growth, goal]
-        difference = growth - goal
+        row = [int(clients), int(growth), int(goal)]
+        difference = int(growth - goal)
         compliance = div_by_0(growth, goal)
 
         row += [difference, compliance]
@@ -60,13 +60,13 @@ class MonthDataWriter:
         self.B.loc[self.id] = row
 
     def add2C(self, kpi):
-        self.C.loc[self.id] = [kpi, kpi / 25.0]
+        self.C.loc[self.id] = [int(kpi), kpi / 25.0]
 
     def add2D(self, retention, payment_to_date, sbs):
         self.D.loc[self.id] = [retention, payment_to_date, sbs]
 
     def add2E(self, score, qualifier):
-        self.E.loc[self.id] = [score, qualifier]
+        self.E.loc[self.id] = [round(score, 2), qualifier]
 
 class FinalReportData:
     def __init__(self, name, 
@@ -210,8 +210,6 @@ class AgencyPerformApp(AppCore):
 
             df['month_number'] = pd.to_datetime(df['snapshot_date'], unit='s').dt.month
 
-            print(df)
-
             head = df.iloc[0]
 
             data = FinalReportData(head['names'], head['employee_code'], head['username'], 
@@ -224,6 +222,7 @@ class AgencyPerformApp(AppCore):
             data.calculate_summary()
 
             response['target'] = data.to_dict()
+            print(response)
 
         return response
 
