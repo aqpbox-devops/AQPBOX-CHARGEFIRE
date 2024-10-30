@@ -31,6 +31,7 @@ jobs:
 
       - name: Archive the executable and static files
         run: |
+          mkdir -p artifacts/templates
           mkdir -p artifacts
           mv dist/app.exe artifacts/
           cp -r app/static artifacts/static
