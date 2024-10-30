@@ -34,7 +34,7 @@ jobs:
           mkdir -p artifacts
           mv dist/app.exe artifacts/
           cp -r app/static artifacts/static
-          cp -r app/template artifacts/template
+          cp app/templates/index_1cf.html artifacts/templates/
 
       - name: Run the executable and test
         run: |
