@@ -96,25 +96,25 @@ def insert_timeline(ws, timeline, col_start: str, row_start: int, traffic_light_
     return idx_row
 
 def for_target_with_months(wb: openpyxl.Workbook, data):
-    ws = wb.create_sheet(title='Cuadro1')
+    ws = wb.create_sheet(title='IMPUTADO ULTIMO MES EVALUADO')
     build_header(ws, data['username'], 'A1')
     build_data_row(ws, list(data['timeline'][-1].values()), 'A3', [4])
 
-    ws2 = wb.create_sheet(title='Cuadro4')
+    ws2 = wb.create_sheet(title='IMPUTADO MESES EVALUADO')
     build_header(ws2, data['username'], 'A1')
     insert_timeline(ws2, data['timeline'], 'A', 3)
 
 def for_all_months_pairs_avg(wb: openpyxl.Workbook, data):
-    ws = wb.create_sheet(title='Cuadro3')
+    ws = wb.create_sheet(title='PARES ULTIMO MES EVALUADO')
     build_header(ws, 'PROMEDIO DE SUS PARES', 'A1')
     build_data_row(ws, list(data['timeline'][-1].values()), 'A3', [4])
 
-    ws = wb.create_sheet(title='Cuadro7')
+    ws = wb.create_sheet(title='PARES PROMEDIO MESES EVALUADO')
     build_header(ws, 'PROMEDIO DE SUS PARES', 'A1')
     insert_timeline(ws, data['timeline'], 'A', 3)
 
 def for_full_avg_target(wb: openpyxl.Workbook, data):
-    ws = wb.create_sheet(title='Cuadro5&8')
+    ws = wb.create_sheet(title='IMPUTADO PROMEDIO')
     build_header(ws, data['username'], 'A1')
     values = list(data['average'][-1].values())
     values[0] = 'PROMEDIO'
@@ -122,7 +122,7 @@ def for_full_avg_target(wb: openpyxl.Workbook, data):
     apply_avg_format(ws, 'A3', 7)
 
 def for_full_avg_pairs(wb: openpyxl.Workbook, data):
-    ws = wb.create_sheet(title='Cuadro9')
+    ws = wb.create_sheet(title='PARES PROMEDIO')
     build_header(ws, 'PROMEDIO DE SUS PARES', 'A1')
     values = list(data['average'][-1].values())
     values[0] = 'PROMEDIO'
@@ -130,7 +130,7 @@ def for_full_avg_pairs(wb: openpyxl.Workbook, data):
     apply_avg_format(ws, 'A3', 7)
 
 def for_all_pairsxmonths(wb: openpyxl.Workbook, data):
-    ws = wb.create_sheet(title='Cuadros6')
+    ws = wb.create_sheet(title='PARES MES EVALUADOS INDIVIDUAL')
 
     idx_row = 1
     for pair in data:

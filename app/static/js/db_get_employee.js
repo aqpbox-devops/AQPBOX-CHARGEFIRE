@@ -22,7 +22,7 @@ function createEmployeeCard(emp, mode) {
         card.className = 'displayed-pairs-row';
 
         card.innerHTML = `
-            <td><input type="checkbox" class="select-checkbox" ${emp.selected ? '' : 'checked'} /></td>
+            <td><input type="checkbox" class="select-pair-checkbox" ${emp.selected ? '' : 'checked'} /></td>
             <td>${emp.username}</td>
             <td>${emp.smeta}</td>
             <td>${emp.vmcbm}</td>

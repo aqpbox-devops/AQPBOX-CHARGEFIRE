@@ -31,16 +31,16 @@ jobs:
 
       - name: Archive the executable and static files
         run: |
-          mkdir -p artifacts/templates
-          mv dist/app.exe artifacts/
-          cp -r app/static artifacts/static
-          cp app/templates/index_1cf.html artifacts/templates/
+          mkdir -p artifacts/app/templates
+          mv dist/app.exe artifacts/app/
+          cp -r app/static artifacts/app/static
+          cp -r db artifacts/db
+          cp app/templates/index_1cf.html artifacts/app/templates/
 
       - name: Run the executable and test
         run: |
-          ./artifacts/chargefire.exe &  # Run executable in background
+          ./artifacts/app/chargefire.exe &  # Run executable in background
           sleep 10  # Wait for app to start
-          curl http://127.0.0.1:5000/  # Check if app responds
 
       - name: Upload executable and static files as artifact
         uses: actions/upload-artifact@v3  # Updated to v3

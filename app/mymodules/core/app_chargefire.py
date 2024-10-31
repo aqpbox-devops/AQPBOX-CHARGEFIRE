@@ -46,13 +46,12 @@ class ChargeFireApp(AppCore):
 
         if self.target_employee is None:
             return response_data
-
+        
         daily = False
         frequency_snapshot = to_snapshot_getter((datetime.strptime(flags['start_date'], "%Y-%m-%d"), 
                                                  datetime.strptime(flags['end_date'], "%Y-%m-%d")), 
-                                                 daily=daily)
-
-        filters: List[str] = [self.filters_sql[key] for key, value in flags.items() if key not in ['start_date', 'end_date'] and value]
+                                                 daily=daily, exceptions=flags['banned_months'])
+        filters: List[str] = [self.filters_sql[key] for key, value in flags.items() if key in ['region', 'zone', 'agency'] and value]
 
         query = f'''
         WITH TargetEmployee AS (
@@ -73,7 +72,7 @@ class ChargeFireApp(AppCore):
         SELECT *
         FROM FilteredTargetEmployee
         WHERE 
-            (region = prev_region AND zone = prev_zone AND agency = prev_agency AND category = prev_category)
+            ({' AND '.join([value.format(f"prev_{key}") for key, value in self.filters_sql.items() if key in flags and flags[key]])} AND category = prev_category)
             OR prev_region IS NULL;  -- Incluye el primer registro donde no hay cambios
         '''
 
@@ -99,7 +98,7 @@ class ChargeFireApp(AppCore):
                 AND {frequency_snapshot}
                 AND category = '{category}'
                 AND worked_days > 14
-                AND employee_code != {self.target_employee.employee_code}  -- Excluir al empleado objetivo
+                AND employee_code != {self.target_employee.employee_code};
             '''
 
             pairs_df = pd.DataFrame(self.connection.fetch_all(query_pairs))
@@ -270,15 +269,11 @@ class ChargeFireApp(AppCore):
 
             tables_dict['full_avg_target'] = {'username': self.target_employee.username,
                                               'average': every_month_of(target_monthly, True)}
+            target_attrs['months'] = target_monthly['snapshot_date_t'].dt.strftime('%Y-%m-%d').to_dict()
 
             if get_full_target_avg:
 
-                print(tables_dict['full_avg_target'])
-                print('INFO TARGET  ', target_attrs)
-
                 tables_dict['full_avg_target']['attrs'] = target_attrs
-
-                print(tables_dict)
 
                 response_data['tables'] = tables_dict
 

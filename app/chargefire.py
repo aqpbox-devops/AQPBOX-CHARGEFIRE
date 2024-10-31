@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, render_template, request
+from flaskwebgui import FlaskUI
 from mymodules.core.app_chargefire import ChargeFireApp
 from mymodules.core.excel_builder import build_tables
 from datetime import datetime
@@ -81,4 +82,4 @@ def generate_excel_tables(banned_pairs):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    FlaskUI(app=app, server="flask").run()

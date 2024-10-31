@@ -76,16 +76,17 @@ def get_last_days_of_months(start_date: datetime, end_date: datetime) -> List[in
         if last_day_of_previous_month <= end_date:
             last_days.append(int(last_day_of_previous_month.timestamp()))
 
-    print(last_days)
-
     return last_days
 
-def to_snapshot_getter(period: Tuple[datetime, datetime], daily: bool=False) -> str:
+def to_snapshot_getter(period: Tuple[datetime, datetime], daily: bool=False, exceptions:List[str]=[]) -> str:
     if daily:
         return f"({int(period[0].timestamp())} >= snapshot_date AND snapshot_date <= {int(period[1].timestamp())})"
 
     else:
         last_days_of_months = get_last_days_of_months(period[0], period[1])
+        for banned_month in exceptions:
+            last_days_of_months.remove(int(datetime.strptime(banned_month, "%Y-%m-%d").timestamp()))
+
         return f"snapshot_date IN ({', '.join([str(date) for date in last_days_of_months])})"
 
 class BANTOTALRecordsSQLiteConnection:

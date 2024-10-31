@@ -1,3 +1,10 @@
+function clearElement(id){
+    const e = document.getElementById(id);
+    if (e){
+        e.innerHTML = '';
+    }
+}
+
 function createEmployeeCard(emp, mode) {
     if (mode === 'default'){
         const card = document.createElement('div');
@@ -22,7 +29,7 @@ function createEmployeeCard(emp, mode) {
         card.className = 'displayed-pairs-row';
 
         card.innerHTML = `
-            <td><input type="checkbox" class="select-checkbox" ${emp.selected ? '' : 'checked'} /></td>
+            <td><input type="checkbox" class="select-pair-checkbox" ${emp.selected ? '' : 'checked'} /></td>
             <td>${emp.username}</td>
             <td>${emp.vmcbm}</td>
             <td>${emp.smeta}</td>
@@ -31,6 +38,7 @@ function createEmployeeCard(emp, mode) {
             <td>${emp.donton}</td>
             <td>${emp.pmeta}</td>
         `;
+
         return card;
     }
     return null;
@@ -45,7 +53,12 @@ function displayResults(results, idContainer, mode) {
         <table class="displayed-pairs-panel" id="PairsTable">
             <thead>
                 <tr>
-                    <th>Es par</th>
+                    <th>
+                        <label>
+                            Es par
+                            <input type="checkbox" id="ToggleAllCheckboxes" checked>
+                        </label>
+                    </th>
                     <th>Analista</th>
                     <th>Crec. Saldo</th>
                     <th>Saldo Meta</th>
@@ -59,9 +72,18 @@ function displayResults(results, idContainer, mode) {
         </table>
         `;
         const tbody = document.getElementById('PairsBody');
+        
         results.forEach(emp => {
             const card = createEmployeeCard(emp, mode);
             tbody.appendChild(card);
+        });
+
+        document.getElementById('ToggleAllCheckboxes').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('#PairsTable tbody .select-pair-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
         });
     }
 
@@ -74,10 +96,26 @@ function displayResults(results, idContainer, mode) {
     }
 }
 
-function clearElement(id_label){
-    const element = document.getElementById(id_label);
-    if (element) {
-        element.innerHTML = '';
+function searchInPairsToHandle(filter){
+    const lower_filter = filter.toLowerCase();
+    const table = document.getElementById('PairsTable');
+    const rows = table.getElementsByTagName('tr');
+
+    if (table){
+
+        for (let i = 1; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName('td');
+            const analistaCell = cells[1];
+
+            if (analistaCell) {
+                const username = analistaCell.textContent || analistaCell.innerText;
+                if (username.toLowerCase().indexOf(lower_filter) > -1) {
+                    rows[i].style.display = '';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+        }
     }
 }
 
@@ -105,6 +143,8 @@ document.getElementById('SearchEmployee').addEventListener('input', function(eve
 });
 
 function buildAndSortRanking(sorted_emps, selectedIndicator, target_data) {
+    searchInPairsToHandle("");
+
     const sortedTableContainer = document.getElementById('RankingTable');
     sortedTableContainer.innerHTML = '';
 
@@ -145,7 +185,7 @@ function buildAndSortRanking(sorted_emps, selectedIndicator, target_data) {
         });
 
         if (pairRow) {
-            const checkbox = pairRow.querySelector('.select-checkbox');
+            const checkbox = pairRow.querySelector('.select-pair-checkbox');
 
             if (checkbox && checkbox.checked) {
                 const newRow = pairRow.cloneNode(true);
@@ -233,12 +273,88 @@ function setTargetAttrs(tables) {
     target_attrs.innerHTML = '';
 
     const attrs = tables.full_avg_target.attrs;
+    console.log(attrs);
+
+    const arrMonths = Object.values(attrs.months).map(date => new Date(date));
+
+    const dateStart = new Date(Math.min(...arrMonths));
+    const dateEnd = new Date(Math.max(...arrMonths));
+
+    const stringfyDate = (date) => {
+        const options = { year: 'numeric', month: 'long' };
+        const formattedDate = date.toLocaleDateString('es-ES', options);
+        
+        return formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+    };
+
+    const dateFormatedStart = stringfyDate(dateStart);
+    const dateFormatedEnd = stringfyDate(dateEnd);
+
     target_attrs.innerHTML += `
         <strong>Región:</strong> ${attrs.region}<br>
         <strong>Zona:</strong> ${attrs.zone}<br>
         <strong>Agencia:</strong> ${attrs.agency}<br>
         <strong>Categoría:</strong> ${attrs.category}<br>
+        <strong>Meses Considerados:</strong> Desde ${dateFormatedStart} a ${dateFormatedEnd}<br>
     `;
+}
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getEachMonthToBan(start_date, end_date) {
+    const bannedMonthsElement = document.getElementById('BannedMonths');
+
+    const existingCheckboxes = Array.from(bannedMonthsElement.querySelectorAll('.month-exception'));
+    const existingStates = {};
+    
+    existingCheckboxes.forEach(checkbox => {
+        existingStates[checkbox.id] = checkbox.checked;
+    });
+
+    bannedMonthsElement.innerHTML = '';
+
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    let currentDate = new Date(start_date);
+
+    while (currentDate <= end_date) {
+        const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const formattedDate = formatDate(lastDayOfMonth);
+        const checkboxId = `month-${currentDate.getTime()}`;
+
+        let isChecked = existingStates[checkboxId] !== undefined ? existingStates[checkboxId] : true; // Valor por defecto es false si no existe
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = `month-exception`;
+        checkbox.value = formattedDate;
+        checkbox.id = checkboxId;
+        checkbox.checked = isChecked;
+
+        localStorage.setItem(checkbox.id, isChecked);
+
+        checkbox.addEventListener('change', function() {
+            localStorage.setItem(checkbox.id, checkbox.checked);
+        });
+
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        label.appendChild(document.createTextNode(`${months[currentDate.getMonth()]}, ${currentDate.getFullYear()}`));
+
+        const div = document.createElement('div');
+        div.appendChild(checkbox);
+        div.appendChild(label);
+
+        bannedMonthsElement.appendChild(div);
+
+        currentDate.setMonth(currentDate.getMonth() + 1);
+    }
 }
 
 function getDateRange() {
@@ -248,22 +364,36 @@ function getDateRange() {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
 
-    const start_month = selectedMonth - 1;
-    const start_date = new Date(currentYear, start_month - monthsBack, 1);
-    const end_date = new Date(currentYear, start_month, 0);
+    const start_date = new Date(currentYear, selectedMonth - monthsBack, 1);
+    const end_date = new Date(currentYear, selectedMonth, 1);
+    end_date.setDate(end_date.getDate() - 1);
 
-    function formatDate(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
+    return [start_date, end_date];
+}
 
-    return [formatDate(start_date), formatDate(end_date)];
+function genMonthsExceptions(){
+    const [start_date_dt, end_date_dt] = getDateRange();
+
+    getEachMonthToBan(start_date_dt, end_date_dt);
+}
+
+const selectedMonth = document.getElementById('SelectedMonth');
+const monthsBack = document.getElementById('MonthsBack');
+selectedMonth.addEventListener('change', genMonthsExceptions);
+monthsBack.addEventListener('input', genMonthsExceptions);
+
+function getSelectedMonths() {
+    const checkboxes = document.querySelectorAll('.month-exception:not(:checked)');
+    const selectedValues = Array.from(checkboxes).map(checkbox => checkbox.value);
+
+    return selectedValues;
 }
 
 document.getElementById('FiltersPanel').addEventListener('click', function(event) {
-    const [start_date, end_date] = getDateRange();
+    const [start_date_dt, end_date_dt] = getDateRange();
+
+    const start_date = formatDate(start_date_dt);
+    const end_date = formatDate(end_date_dt);
 
     if (event.target.tagName === 'BUTTON') {
         const region = document.getElementById('FlagRegion').classList.contains('active');
@@ -271,11 +401,13 @@ document.getElementById('FiltersPanel').addEventListener('click', function(event
         const agency = document.getElementById('FlagAgency').classList.contains('active');
         
         const monthly = document.getElementById("MonthlyCheck").checked;
+        const banned_months = getSelectedMonths();
 
         const flags = {
             region,
             zone,
             agency,
+            banned_months,
             start_date,
             end_date
         };
@@ -300,25 +432,5 @@ document.getElementById('FiltersPanel').addEventListener('click', function(event
 });
 
 document.getElementById('PairFinderInTable').addEventListener('keyup', function() {
-    const filter = this.value.toLowerCase();
-    
-    const table = document.getElementById('PairsTable');
-    const rows = table.getElementsByTagName('tr');
-
-    if (table){
-
-        for (let i = 1; i < rows.length; i++) {
-            const cells = rows[i].getElementsByTagName('td');
-            const analistaCell = cells[1];
-
-            if (analistaCell) {
-                const username = analistaCell.textContent || analistaCell.innerText;
-                if (username.toLowerCase().indexOf(filter) > -1) {
-                    rows[i].style.display = '';
-                } else {
-                    rows[i].style.display = 'none';
-                }
-            }
-        }
-    }
+    searchInPairsToHandle(this.value);
 });

@@ -148,6 +148,7 @@ button.active {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 0.75rem;
     margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
     max-height: 250px;
     overflow-y: scroll;
 }
@@ -249,6 +250,19 @@ button.active {
     position: sticky;
     top: 0;
     z-index: 10;
+}
+
+input[type="checkbox"] {
+    accent-color: var(--accent-color); /* Cambia el color del checkbox a rojo */
+}
+
+.toggle-button {
+    cursor: pointer;
+    padding: 10px;
+    background-color: var(--accent-color);
+    color: var(--text-primary);
+    border: none;
+    border-radius: 5px;
 }
 
 #loadingScreen {

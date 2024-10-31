@@ -5,6 +5,7 @@ def build_executable():
     command = [
         'pyinstaller',
         '--onefile',
+        '--windowed',
         '--clean',
         '--name', 'app',  # Change this to your desired executable name
         'app/chargefire.py',      # Path to your main script
@@ -19,7 +20,8 @@ def build_executable():
         '--hidden-import', 'sqlite3',
         '--hidden-import', 'shutil',  # Agregado
         '--hidden-import', 'pickle',   # Agregado
-        '--hidden-import', 'warnings'
+        '--hidden-import', 'warnings',
+        '--hidden-import', 'flaskwebgui'
     ]
 
     try:
