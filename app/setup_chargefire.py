@@ -10,8 +10,8 @@ def build_executable():
         '--name', 'app',  # Change this to your desired executable name
         'app/chargefire.py',      # Path to your main script
         '--add-data=app/mymodules:mymodules',
-
-        # Include external libraries as hidden imports
+        '--add-data', 'app/templates:templates',  # Include HTML files
+        '--add-data', 'app/static:static',
         '--hidden-import', 'flask',
         '--hidden-import', 'pandas',
         '--hidden-import', 'numpy',
